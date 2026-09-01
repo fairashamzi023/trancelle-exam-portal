@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,6 +29,11 @@ type SidebarOption =
   | "Camera Monitoring"
   | "Admin Settings";
 
+const ALLOWED_ADMINS = [
+  "kcds2025trancelle@gmail.com",
+  "trancelleinternational25@gmail.com",
+];
+
 export default function AdminDashboard() {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [activeSection, setActiveSection] =
@@ -37,13 +43,60 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+
   // =====================================
-  // LOAD STUDENTS + EXAM RESULTS
+  // CHECK ADMIN AUTHENTICATION
   // =====================================
 
   useEffect(() => {
-    loadStudents();
+    const checkAdminAccess = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        // No logged-in user
+        if (!user) {
+          window.location.href = "/admin";
+          return;
+        }
+
+        const userEmail = user.email?.trim().toLowerCase();
+
+        // User is not one of the two authorized admins
+        if (
+          !userEmail ||
+          !ALLOWED_ADMINS.includes(userEmail)
+        ) {
+          await supabase.auth.signOut();
+          window.location.href = "/admin";
+          return;
+        }
+
+        // Authorized admin
+        setAuthorized(true);
+        setAuthChecking(false);
+
+        loadStudents();
+      } catch (error) {
+        console.error(
+          "Admin authentication error:",
+          error
+        );
+
+        await supabase.auth.signOut();
+        window.location.href = "/admin";
+      }
+    };
+
+    checkAdminAccess();
   }, []);
+
+  // =====================================
+  // LOAD STUDENTS + EXAM RESULTS
+  // =====================================
 
   const loadStudents = async () => {
     try {
@@ -174,6 +227,55 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
+
+  // =====================================
+  // AUTHENTICATION CHECK SCREEN
+  // =====================================
+
+  if (authChecking) {
+    return (
+      <main
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#f5f7fb",
+          fontFamily: "Arial, sans-serif",
+          color: "#111827",
+        }}
+      >
+        <div
+          style={{
+            background: "white",
+            padding: "40px",
+            borderRadius: "16px",
+            boxShadow:
+              "0 10px 30px rgba(0,0,0,0.08)",
+            textAlign: "center",
+          }}
+        >
+          <h2>Checking administrator access...</h2>
+
+          <p
+            style={{
+              color: "#6b7280",
+            }}
+          >
+            Please wait.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  // =====================================
+  // BLOCK UNAUTHORIZED ACCESS
+  // =====================================
+
+  if (!authorized) {
+    return null;
+  }
 
   // =====================================
   // DASHBOARD STATISTICS
@@ -1173,10 +1275,12 @@ export default function AdminDashboard() {
           }
         />
 
+        {/* LOGOUT */}
+
         <button
-          onClick={() => {
-            window.location.href =
-              "/";
+          onClick={async () => {
+            await supabase.auth.signOut();
+            window.location.href = "/";
           }}
           style={{
             width: "100%",

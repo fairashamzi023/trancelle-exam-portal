@@ -157,11 +157,10 @@ export default function AdminDashboard() {
       const convertedStudents: StudentData[] =
         (studentData || []).map((student: any) => {
           const examResult =
-            (examData || []).find(
-              (result: any) =>
-                result.student_id === student.id ||
-                result.user_id === student.user_id
-            );
+  (examData || []).find(
+    (result: any) =>
+      result.student_id === student.user_id
+  );
 
           return {
             id:

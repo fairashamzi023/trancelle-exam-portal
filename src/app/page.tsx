@@ -8,7 +8,6 @@ const [role, setRole] = useState<"student" | "admin" | null>(null);
 
 return ( <main className="home">
 {/* NAVBAR */} <nav className="navbar"> <div className="brand"> <h1>TRANCELLE</h1> <p>INTERNATIONAL ACADEMY</p> </div>
-```
     <div className="navLinks">
       <a href="#home">Home</a>
       <a href="#about">About Us</a>

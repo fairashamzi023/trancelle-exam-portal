@@ -379,8 +379,11 @@ export default function ExamPage() {
         student.exam_completed === true
       ) {
         setExamEnded(true);
+
         await fetchExamResult();
+
         setAuthorized(true);
+
         return;
       }
 
@@ -1136,6 +1139,7 @@ export default function ExamPage() {
 
   // =====================================
   // START ONE-TIME EXAM
+  // DATABASE-LEVEL ATOMIC LOCK
   // =====================================
 
   const startExam = async () => {
@@ -1166,6 +1170,10 @@ export default function ExamPage() {
 
         return;
       }
+
+      // =====================================
+      // FIRST CHECK CURRENT EXAM STATUS
+      // =====================================
 
       const {
         data: student,
@@ -1214,39 +1222,51 @@ export default function ExamPage() {
         return;
       }
 
+      // =====================================
+      // DATABASE ATOMIC LOCK
+      // =====================================
+
       const {
-        error: updateError,
-      } = await supabase
-        .from("students")
-        .update({
-          exam_started: true,
+        data: examStartedResult,
+        error: startError,
+      } = await supabase.rpc(
+        "start_exam"
+      );
 
-          exam_started_at:
-            new Date().toISOString(),
-        })
-        .eq(
-          "user_id",
-          user.id
-        )
-        .eq(
-          "exam_started",
-          false
-        );
-
-      if (
-        updateError
-      ) {
+      if (startError) {
         console.error(
-          "Exam lock error:",
-          updateError
+          "Exam start error:",
+          startError
         );
 
         alert(
-          "Unable to lock your examination attempt."
+          "Unable to start the examination."
         );
 
         return;
       }
+
+      // =====================================
+      // DATABASE SAYS EXAM WAS ALREADY USED
+      // =====================================
+
+      if (
+        examStartedResult !== true
+      ) {
+        setExamAlreadyUsed(
+          true
+        );
+
+        alert(
+          "You have already used your examination attempt. You cannot take this exam again."
+        );
+
+        return;
+      }
+
+      // =====================================
+      // REQUEST FULLSCREEN
+      // =====================================
 
       try {
         if (
@@ -1265,9 +1285,14 @@ export default function ExamPage() {
         );
       }
 
+      // =====================================
+      // START EXAM UI
+      // =====================================
+
       setExamStarted(
         true
       );
+
     } catch (
       error
     ) {
@@ -1279,6 +1304,7 @@ export default function ExamPage() {
       alert(
         "Something went wrong while starting the examination."
       );
+
     } finally {
       setStartingExam(
         false
@@ -1392,19 +1418,27 @@ export default function ExamPage() {
     };
 
   // =====================================
-  // EXAM ALREADY USED SCREEN
+  // EXAM ACCESS CHECK
   // =====================================
 
-  if (authorized === null) {
+  if (
+    authorized === null
+  ) {
     return (
       <main
         style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "Arial, sans-serif",
-          background: "#f5f7fb",
+          minHeight:
+            "100vh",
+          display:
+            "flex",
+          alignItems:
+            "center",
+          justifyContent:
+            "center",
+          fontFamily:
+            "Arial, sans-serif",
+          background:
+            "#f5f7fb",
         }}
       >
         <p>
@@ -1414,34 +1448,54 @@ export default function ExamPage() {
     );
   }
 
-  if (examAlreadyUsed) {
+  // =====================================
+  // EXAM ALREADY USED
+  // =====================================
+
+  if (
+    examAlreadyUsed
+  ) {
     return (
       <main
         style={{
-          minHeight: "100vh",
-          background: "#f5f7fb",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "20px",
-          fontFamily: "Arial, sans-serif",
+          minHeight:
+            "100vh",
+          background:
+            "#f5f7fb",
+          display:
+            "flex",
+          justifyContent:
+            "center",
+          alignItems:
+            "center",
+          padding:
+            "20px",
+          fontFamily:
+            "Arial, sans-serif",
         }}
       >
         <div
           style={{
-            width: "100%",
-            maxWidth: "600px",
-            background: "white",
-            padding: "40px",
-            borderRadius: "18px",
-            textAlign: "center",
+            width:
+              "100%",
+            maxWidth:
+              "600px",
+            background:
+              "white",
+            padding:
+              "40px",
+            borderRadius:
+              "18px",
+            textAlign:
+              "center",
             boxShadow:
               "0 10px 30px rgba(0,0,0,0.12)",
           }}
         >
           <h1
             style={{
-              color: "#dc2626",
+              color:
+                "#dc2626",
             }}
           >
             Examination Unavailable
@@ -1449,9 +1503,12 @@ export default function ExamPage() {
 
           <p
             style={{
-              fontSize: "18px",
-              lineHeight: "1.6",
-              color: "#4b5563",
+              fontSize:
+                "18px",
+              lineHeight:
+                "1.6",
+              color:
+                "#4b5563",
             }}
           >
             This examination attempt has already
@@ -1460,10 +1517,14 @@ export default function ExamPage() {
 
           <p
             style={{
-              marginTop: "20px",
-              color: "#dc2626",
-              fontWeight: "bold",
-              lineHeight: "1.6",
+              marginTop:
+                "20px",
+              color:
+                "#dc2626",
+              fontWeight:
+                "bold",
+              lineHeight:
+                "1.6",
             }}
           >
             Each student is allowed only one
@@ -1480,15 +1541,24 @@ export default function ExamPage() {
               );
             }}
             style={{
-              marginTop: "25px",
-              padding: "13px 25px",
-              border: "none",
-              borderRadius: "10px",
-              background: "#2563eb",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              cursor: "pointer",
+              marginTop:
+                "25px",
+              padding:
+                "13px 25px",
+              border:
+                "none",
+              borderRadius:
+                "10px",
+              background:
+                "#2563eb",
+              color:
+                "white",
+              fontSize:
+                "16px",
+              fontWeight:
+                "bold",
+              cursor:
+                "pointer",
             }}
           >
             Return to Login
@@ -1502,38 +1572,56 @@ export default function ExamPage() {
   // EXAM INSTRUCTIONS
   // =====================================
 
-  if (!examStarted) {
+  if (
+    !examStarted
+  ) {
     return (
       <main
         style={{
-          minHeight: "100vh",
-          background: "#f5f7fb",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "20px",
+          minHeight:
+            "100vh",
+          background:
+            "#f5f7fb",
+          display:
+            "flex",
+          justifyContent:
+            "center",
+          alignItems:
+            "center",
+          padding:
+            "20px",
           fontFamily:
             "Arial, sans-serif",
         }}
       >
         <section
           style={{
-            width: "100%",
-            maxWidth: "750px",
-            background: "white",
-            borderRadius: "18px",
-            padding: "40px",
+            width:
+              "100%",
+            maxWidth:
+              "750px",
+            background:
+              "white",
+            borderRadius:
+              "18px",
+            padding:
+              "40px",
             boxShadow:
               "0 10px 30px rgba(0,0,0,0.12)",
           }}
         >
           <p
             style={{
-              textAlign: "center",
-              color: "#2563eb",
-              fontWeight: "bold",
-              letterSpacing: "2px",
-              fontSize: "13px",
+              textAlign:
+                "center",
+              color:
+                "#2563eb",
+              fontWeight:
+                "bold",
+              letterSpacing:
+                "2px",
+              fontSize:
+                "13px",
             }}
           >
             TRANCELLE INTERNATIONAL ACADEMY
@@ -1541,8 +1629,10 @@ export default function ExamPage() {
 
           <h1
             style={{
-              textAlign: "center",
-              marginBottom: "10px",
+              textAlign:
+                "center",
+              marginBottom:
+                "10px",
             }}
           >
             Examination Instructions
@@ -1550,10 +1640,14 @@ export default function ExamPage() {
 
           <p
             style={{
-              textAlign: "center",
-              color: "#4b5563",
-              lineHeight: "1.6",
-              marginBottom: "30px",
+              textAlign:
+                "center",
+              color:
+                "#4b5563",
+              lineHeight:
+                "1.6",
+              marginBottom:
+                "30px",
             }}
           >
             Please carefully read all instructions
@@ -1562,11 +1656,16 @@ export default function ExamPage() {
 
           <div
             style={{
-              background: "#f8fafc",
-              borderRadius: "12px",
-              padding: "25px",
-              lineHeight: "1.8",
-              color: "#374151",
+              background:
+                "#f8fafc",
+              borderRadius:
+                "12px",
+              padding:
+                "25px",
+              lineHeight:
+                "1.8",
+              color:
+                "#374151",
             }}
           >
             <h3>
@@ -1575,7 +1674,8 @@ export default function ExamPage() {
 
             <ol
               style={{
-                paddingLeft: "20px",
+                paddingLeft:
+                  "20px",
               }}
             >
               <li>
@@ -1630,13 +1730,20 @@ export default function ExamPage() {
 
           <label
             style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "12px",
-              marginTop: "25px",
-              cursor: "pointer",
-              color: "#374151",
-              lineHeight: "1.5",
+              display:
+                "flex",
+              alignItems:
+                "flex-start",
+              gap:
+                "12px",
+              marginTop:
+                "25px",
+              cursor:
+                "pointer",
+              color:
+                "#374151",
+              lineHeight:
+                "1.5",
             }}
           >
             <input
@@ -1652,7 +1759,8 @@ export default function ExamPage() {
                 )
               }
               style={{
-                marginTop: "4px",
+                marginTop:
+                  "4px",
               }}
             />
 
@@ -1676,19 +1784,27 @@ export default function ExamPage() {
               startExam
             }
             style={{
-              width: "100%",
-              marginTop: "30px",
-              padding: "16px",
-              border: "none",
-              borderRadius: "10px",
+              width:
+                "100%",
+              marginTop:
+                "30px",
+              padding:
+                "16px",
+              border:
+                "none",
+              borderRadius:
+                "10px",
               background:
                 instructionsAccepted &&
                 !startingExam
                   ? "#2563eb"
                   : "#9ca3af",
-              color: "white",
-              fontSize: "17px",
-              fontWeight: "bold",
+              color:
+                "white",
+              fontSize:
+                "17px",
+              fontWeight:
+                "bold",
               cursor:
                 instructionsAccepted &&
                 !startingExam
@@ -1709,37 +1825,56 @@ export default function ExamPage() {
   // EXAM FINISHED + RESULT SCREEN
   // =====================================
 
-  if (examEnded) {
+  if (
+    examEnded
+  ) {
     return (
       <main
         style={{
-          minHeight: "100vh",
-          background: "#f5f7fb",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "20px",
-          fontFamily: "Arial, sans-serif",
+          minHeight:
+            "100vh",
+          background:
+            "#f5f7fb",
+          display:
+            "flex",
+          justifyContent:
+            "center",
+          alignItems:
+            "center",
+          padding:
+            "20px",
+          fontFamily:
+            "Arial, sans-serif",
         }}
       >
         <div
           style={{
-            width: "100%",
-            maxWidth: "650px",
-            background: "white",
-            padding: "40px",
-            borderRadius: "18px",
+            width:
+              "100%",
+            maxWidth:
+              "650px",
+            background:
+              "white",
+            padding:
+              "40px",
+            borderRadius:
+              "18px",
             boxShadow:
               "0 10px 30px rgba(0,0,0,0.12)",
-            textAlign: "center",
+            textAlign:
+              "center",
           }}
         >
           <p
             style={{
-              color: "#2563eb",
-              fontWeight: "bold",
-              letterSpacing: "2px",
-              fontSize: "13px",
+              color:
+                "#2563eb",
+              fontWeight:
+                "bold",
+              letterSpacing:
+                "2px",
+              fontSize:
+                "13px",
             }}
           >
             TRANCELLE INTERNATIONAL ACADEMY
@@ -1747,8 +1882,10 @@ export default function ExamPage() {
 
           <h1
             style={{
-              color: "#16a34a",
-              marginTop: "10px",
+              color:
+                "#16a34a",
+              marginTop:
+                "10px",
             }}
           >
             Examination Finished
@@ -1756,9 +1893,12 @@ export default function ExamPage() {
 
           <p
             style={{
-              color: "#4b5563",
-              lineHeight: "1.6",
-              fontSize: "17px",
+              color:
+                "#4b5563",
+              lineHeight:
+                "1.6",
+              fontSize:
+                "17px",
             }}
           >
             Your examination attempt has ended and
@@ -1768,10 +1908,14 @@ export default function ExamPage() {
           {resultLoading ? (
             <div
               style={{
-                marginTop: "30px",
-                padding: "30px",
-                background: "#f8fafc",
-                borderRadius: "14px",
+                marginTop:
+                  "30px",
+                padding:
+                  "30px",
+                background:
+                  "#f8fafc",
+                borderRadius:
+                  "14px",
               }}
             >
               <p>
@@ -1782,18 +1926,24 @@ export default function ExamPage() {
             <>
               <div
                 style={{
-                  marginTop: "30px",
-                  padding: "30px",
-                  background: "#f0fdf4",
+                  marginTop:
+                    "30px",
+                  padding:
+                    "30px",
+                  background:
+                    "#f0fdf4",
                   border:
                     "1px solid #bbf7d0",
-                  borderRadius: "14px",
+                  borderRadius:
+                    "14px",
                 }}
               >
                 <h2
                   style={{
-                    marginTop: 0,
-                    color: "#166534",
+                    marginTop:
+                      0,
+                    color:
+                      "#166534",
                   }}
                 >
                   Your Result
@@ -1801,14 +1951,19 @@ export default function ExamPage() {
 
                 <p
                   style={{
-                    margin: "15px 0",
-                    fontSize: "28px",
-                    fontWeight: "bold",
-                    color: "#111827",
+                    margin:
+                      "15px 0",
+                    fontSize:
+                      "28px",
+                    fontWeight:
+                      "bold",
+                    color:
+                      "#111827",
                   }}
                 >
                   Score:{" "}
-                  {examScore !== null
+                  {examScore !==
+                  null
                     ? examScore
                     : "--"}{" "}
                   /{" "}
@@ -1820,10 +1975,14 @@ export default function ExamPage() {
 
                 <p
                   style={{
-                    margin: 0,
-                    fontSize: "22px",
-                    fontWeight: "bold",
-                    color: "#16a34a",
+                    margin:
+                      0,
+                    fontSize:
+                      "22px",
+                    fontWeight:
+                      "bold",
+                    color:
+                      "#16a34a",
                   }}
                 >
                   Percentage:{" "}
@@ -1836,18 +1995,26 @@ export default function ExamPage() {
 
               <div
                 style={{
-                  marginTop: "20px",
-                  padding: "25px",
-                  background: "#f8fafc",
-                  borderRadius: "14px",
-                  textAlign: "left",
-                  color: "#111827",
+                  marginTop:
+                    "20px",
+                  padding:
+                    "25px",
+                  background:
+                    "#f8fafc",
+                  borderRadius:
+                    "14px",
+                  textAlign:
+                    "left",
+                  color:
+                    "#111827",
                 }}
               >
                 <h3
                   style={{
-                    textAlign: "center",
-                    marginTop: 0,
+                    textAlign:
+                      "center",
+                    marginTop:
+                      0,
                   }}
                 >
                   Examination Monitoring Summary
@@ -1855,18 +2022,24 @@ export default function ExamPage() {
 
                 <div
                   style={{
-                    display: "grid",
-                    gap: "12px",
+                    display:
+                      "grid",
+                    gap:
+                      "12px",
                   }}
                 >
                   <div
                     style={{
-                      display: "flex",
+                      display:
+                        "flex",
                       justifyContent:
                         "space-between",
-                      padding: "12px",
-                      background: "white",
-                      borderRadius: "8px",
+                      padding:
+                        "12px",
+                      background:
+                        "white",
+                      borderRadius:
+                        "8px",
                     }}
                   >
                     <span>
@@ -1874,18 +2047,24 @@ export default function ExamPage() {
                     </span>
 
                     <strong>
-                      {lookingAwayCount}
+                      {
+                        lookingAwayCount
+                      }
                     </strong>
                   </div>
 
                   <div
                     style={{
-                      display: "flex",
+                      display:
+                        "flex",
                       justifyContent:
                         "space-between",
-                      padding: "12px",
-                      background: "white",
-                      borderRadius: "8px",
+                      padding:
+                        "12px",
+                      background:
+                        "white",
+                      borderRadius:
+                        "8px",
                     }}
                   >
                     <span>
@@ -1893,18 +2072,24 @@ export default function ExamPage() {
                     </span>
 
                     <strong>
-                      {personWarningCount}
+                      {
+                        personWarningCount
+                      }
                     </strong>
                   </div>
 
                   <div
                     style={{
-                      display: "flex",
+                      display:
+                        "flex",
                       justifyContent:
                         "space-between",
-                      padding: "12px",
-                      background: "white",
-                      borderRadius: "8px",
+                      padding:
+                        "12px",
+                      background:
+                        "white",
+                      borderRadius:
+                        "8px",
                     }}
                   >
                     <span>
@@ -1912,7 +2097,9 @@ export default function ExamPage() {
                     </span>
 
                     <strong>
-                      {tabSwitchCount}
+                      {
+                        tabSwitchCount
+                      }
                     </strong>
                   </div>
                 </div>
@@ -1922,20 +2109,28 @@ export default function ExamPage() {
 
           <div
             style={{
-              marginTop: "25px",
-              padding: "18px",
-              background: "#fef2f2",
+              marginTop:
+                "25px",
+              padding:
+                "18px",
+              background:
+                "#fef2f2",
               border:
                 "1px solid #fecaca",
-              borderRadius: "12px",
+              borderRadius:
+                "12px",
             }}
           >
             <p
               style={{
-                margin: 0,
-                color: "#dc2626",
-                fontWeight: "bold",
-                lineHeight: "1.6",
+                margin:
+                  0,
+                color:
+                  "#dc2626",
+                fontWeight:
+                  "bold",
+                lineHeight:
+                  "1.6",
               }}
             >
               Your examination attempt has been
@@ -1953,15 +2148,24 @@ export default function ExamPage() {
               );
             }}
             style={{
-              marginTop: "25px",
-              padding: "14px 28px",
-              border: "none",
-              borderRadius: "10px",
-              background: "#2563eb",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              cursor: "pointer",
+              marginTop:
+                "25px",
+              padding:
+                "14px 28px",
+              border:
+                "none",
+              borderRadius:
+                "10px",
+              background:
+                "#2563eb",
+              color:
+                "white",
+              fontSize:
+                "16px",
+              fontWeight:
+                "bold",
+              cursor:
+                "pointer",
             }}
           >
             Return to Login
@@ -1972,7 +2176,7 @@ export default function ExamPage() {
   }
 
   // =====================================
-  // WARNING PORTAL
+  // WARNING MODAL
   // =====================================
 
   const warningModal =
@@ -1982,76 +2186,98 @@ export default function ExamPage() {
           role="dialog"
           aria-modal="true"
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: "100vw",
-            height: "100vh",
-
+            position:
+              "fixed",
+            top:
+              0,
+            left:
+              0,
+            right:
+              0,
+            bottom:
+              0,
+            width:
+              "100vw",
+            height:
+              "100vh",
             background:
               "rgba(0,0,0,0.75)",
-
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-
-            padding: "20px",
-            boxSizing: "border-box",
-
-            zIndex: 2147483647,
-
-            isolation: "isolate",
-
-            pointerEvents: "auto",
+            display:
+              "flex",
+            justifyContent:
+              "center",
+            alignItems:
+              "center",
+            padding:
+              "20px",
+            boxSizing:
+              "border-box",
+            zIndex:
+              2147483647,
+            isolation:
+              "isolate",
+            pointerEvents:
+              "auto",
           }}
-          onClick={(event) => {
+          onClick={(
+            event
+          ) => {
             event.stopPropagation();
           }}
         >
           <div
             style={{
-              position: "relative",
-
-              width: "100%",
-              maxWidth: "500px",
-
-              background: "white",
-
-              borderRadius: "18px",
-
-              padding: "35px",
-
-              textAlign: "center",
-
-              boxSizing: "border-box",
-
+              position:
+                "relative",
+              width:
+                "100%",
+              maxWidth:
+                "500px",
+              background:
+                "white",
+              borderRadius:
+                "18px",
+              padding:
+                "35px",
+              textAlign:
+                "center",
+              boxSizing:
+                "border-box",
               boxShadow:
                 "0 20px 60px rgba(0,0,0,0.5)",
-
-              zIndex: 2147483647,
+              zIndex:
+                2147483647,
             }}
-            onClick={(event) => {
+            onClick={(
+              event
+            ) => {
               event.stopPropagation();
             }}
           >
             <div
               style={{
-                width: "70px",
-                height: "70px",
-                margin: "0 auto 20px",
-                borderRadius: "50%",
+                width:
+                  "70px",
+                height:
+                  "70px",
+                margin:
+                  "0 auto 20px",
+                borderRadius:
+                  "50%",
                 background:
                   warningTitle.includes(
                     "ENDED"
                   )
                     ? "#fee2e2"
                     : "#fef3c7",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "35px",
+                display:
+                  "flex",
+                alignItems:
+                  "center",
+                justifyContent:
+                  "center",
+                fontSize:
+                  "35px",
               }}
             >
               {warningTitle.includes(
@@ -2063,30 +2289,40 @@ export default function ExamPage() {
 
             <h2
               style={{
-                marginTop: 0,
-                marginBottom: "15px",
+                marginTop:
+                  0,
+                marginBottom:
+                  "15px",
                 color:
                   warningTitle.includes(
                     "ENDED"
                   )
                     ? "#dc2626"
                     : "#d97706",
-                fontSize: "25px",
+                fontSize:
+                  "25px",
               }}
             >
-              {warningTitle}
+              {
+                warningTitle
+              }
             </h2>
 
             <p
               style={{
-                color: "#374151",
-                fontSize: "17px",
-                lineHeight: "1.6",
+                color:
+                  "#374151",
+                fontSize:
+                  "17px",
+                lineHeight:
+                  "1.6",
                 margin:
                   "0 0 10px",
               }}
             >
-              {warningMessage}
+              {
+                warningMessage
+              }
             </p>
 
             {!examEnded && (
@@ -2095,17 +2331,26 @@ export default function ExamPage() {
                   closeWarning
                 }
                 style={{
-                  marginTop: "20px",
+                  marginTop:
+                    "20px",
                   padding:
                     "13px 28px",
-                  border: "none",
-                  borderRadius: "10px",
-                  background: "#2563eb",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  minWidth: "150px",
+                  border:
+                    "none",
+                  borderRadius:
+                    "10px",
+                  background:
+                    "#2563eb",
+                  color:
+                    "white",
+                  fontSize:
+                    "16px",
+                  fontWeight:
+                    "bold",
+                  cursor:
+                    "pointer",
+                  minWidth:
+                    "150px",
                 }}
               >
                 I Understand
@@ -2124,37 +2369,53 @@ export default function ExamPage() {
     <>
       <main
         style={{
-          minHeight: "100vh",
-          background: "#f3f4f6",
+          minHeight:
+            "100vh",
+          background:
+            "#f3f4f6",
           fontFamily:
             "Arial, sans-serif",
-          color: "#111827",
-
-          position: "relative",
-          zIndex: 1,
+          color:
+            "#111827",
+          position:
+            "relative",
+          zIndex:
+            1,
         }}
       >
         <header
           style={{
-            background: "#111827",
-            color: "white",
-            padding: "15px 25px",
-            display: "flex",
+            background:
+              "#111827",
+            color:
+              "white",
+            padding:
+              "15px 25px",
+            display:
+              "flex",
             justifyContent:
               "space-between",
-            alignItems: "center",
-            position: "sticky",
-            top: 0,
-            zIndex: 100,
+            alignItems:
+              "center",
+            position:
+              "sticky",
+            top:
+              0,
+            zIndex:
+              100,
           }}
         >
           <div>
             <p
               style={{
-                margin: 0,
-                fontSize: "12px",
-                letterSpacing: "1.5px",
-                color: "#93c5fd",
+                margin:
+                  0,
+                fontSize:
+                  "12px",
+                letterSpacing:
+                  "1.5px",
+                color:
+                  "#93c5fd",
               }}
             >
               TRANCELLE INTERNATIONAL ACADEMY
@@ -2164,7 +2425,8 @@ export default function ExamPage() {
               style={{
                 margin:
                   "5px 0 0",
-                fontSize: "20px",
+                fontSize:
+                  "20px",
               }}
             >
               Online Examination
@@ -2173,14 +2435,18 @@ export default function ExamPage() {
 
           <div
             style={{
-              textAlign: "right",
+              textAlign:
+                "right",
             }}
           >
             <p
               style={{
-                margin: 0,
-                fontSize: "12px",
-                color: "#d1d5db",
+                margin:
+                  0,
+                fontSize:
+                  "12px",
+                color:
+                  "#d1d5db",
               }}
             >
               Time Remaining
@@ -2188,7 +2454,8 @@ export default function ExamPage() {
 
             <strong
               style={{
-                fontSize: "22px",
+                fontSize:
+                  "22px",
                 color:
                   timeLeft <= 60
                     ? "#f87171"
@@ -2204,42 +2471,57 @@ export default function ExamPage() {
 
         <div
           style={{
-            display: "grid",
+            display:
+              "grid",
             gridTemplateColumns:
               "minmax(0, 1fr) 320px",
-            gap: "25px",
-            padding: "25px",
-            maxWidth: "1400px",
-            margin: "0 auto",
+            gap:
+              "25px",
+            padding:
+              "25px",
+            maxWidth:
+              "1400px",
+            margin:
+              "0 auto",
           }}
         >
           <section
             style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "30px",
+              background:
+                "white",
+              borderRadius:
+                "16px",
+              padding:
+                "30px",
               boxShadow:
                 "0 5px 20px rgba(0,0,0,0.08)",
             }}
           >
             <p
               style={{
-                color: "#2563eb",
-                fontWeight: "bold",
-                marginTop: 0,
+                color:
+                  "#2563eb",
+                fontWeight:
+                  "bold",
+                marginTop:
+                  0,
               }}
             >
               Question{" "}
-              {currentQuestion + 1}{" "}
+              {currentQuestion +
+                1}{" "}
               of{" "}
               {questions.length}
             </p>
 
             <h2
               style={{
-                fontSize: "24px",
-                lineHeight: "1.5",
-                marginBottom: "30px",
+                fontSize:
+                  "24px",
+                lineHeight:
+                  "1.5",
+                marginBottom:
+                  "30px",
               }}
             >
               {
@@ -2251,24 +2533,32 @@ export default function ExamPage() {
 
             <div
               style={{
-                display: "grid",
-                gap: "15px",
+                display:
+                  "grid",
+                gap:
+                  "15px",
               }}
             >
               {questions[
                 currentQuestion
               ].options.map(
-                (option) => (
+                (
+                  option
+                ) => (
                   <button
-                    key={option}
+                    key={
+                      option
+                    }
                     onClick={() =>
                       selectAnswer(
                         option
                       )
                     }
                     style={{
-                      width: "100%",
-                      padding: "18px",
+                      width:
+                        "100%",
+                      padding:
+                        "18px",
                       border:
                         answers[
                           currentQuestion
@@ -2287,7 +2577,8 @@ export default function ExamPage() {
                           : "white",
                       textAlign:
                         "left",
-                      fontSize: "16px",
+                      fontSize:
+                        "16px",
                       cursor:
                         "pointer",
                       color:
@@ -2302,20 +2593,26 @@ export default function ExamPage() {
 
             <div
               style={{
-                display: "flex",
+                display:
+                  "flex",
                 justifyContent:
                   "space-between",
-                gap: "15px",
-                marginTop: "35px",
+                gap:
+                  "15px",
+                marginTop:
+                  "35px",
               }}
             >
               <button
                 onClick={() =>
                   setCurrentQuestion(
-                    (previous) =>
+                    (
+                      previous
+                    ) =>
                       Math.max(
                         0,
-                        previous - 1
+                        previous -
+                          1
                       )
                   )
                 }
@@ -2326,7 +2623,8 @@ export default function ExamPage() {
                 style={{
                   padding:
                     "13px 22px",
-                  border: "none",
+                  border:
+                    "none",
                   borderRadius:
                     "10px",
                   background:
@@ -2334,7 +2632,8 @@ export default function ExamPage() {
                     0
                       ? "#d1d5db"
                       : "#6b7280",
-                  color: "white",
+                  color:
+                    "white",
                   fontSize:
                     "16px",
                   fontWeight:
@@ -2355,23 +2654,28 @@ export default function ExamPage() {
                 <button
                   onClick={() =>
                     setCurrentQuestion(
-                      (previous) =>
+                      (
+                        previous
+                      ) =>
                         Math.min(
                           questions.length -
                             1,
-                          previous + 1
+                          previous +
+                            1
                         )
                     )
                   }
                   style={{
                     padding:
                       "13px 22px",
-                    border: "none",
+                    border:
+                      "none",
                     borderRadius:
                       "10px",
                     background:
                       "#2563eb",
-                    color: "white",
+                    color:
+                      "white",
                     fontSize:
                       "16px",
                     fontWeight:
@@ -2426,12 +2730,14 @@ export default function ExamPage() {
                   style={{
                     padding:
                       "13px 22px",
-                    border: "none",
+                    border:
+                      "none",
                     borderRadius:
                       "10px",
                     background:
                       "#dc2626",
-                    color: "white",
+                    color:
+                      "white",
                     fontSize:
                       "16px",
                     fontWeight:
@@ -2449,8 +2755,10 @@ export default function ExamPage() {
 
             <div
               style={{
-                marginTop: "35px",
-                paddingTop: "25px",
+                marginTop:
+                  "35px",
+                paddingTop:
+                  "25px",
                 borderTop:
                   "1px solid #e5e7eb",
               }}
@@ -2468,15 +2776,23 @@ export default function ExamPage() {
 
               <div
                 style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "10px",
+                  display:
+                    "flex",
+                  flexWrap:
+                    "wrap",
+                  gap:
+                    "10px",
                 }}
               >
                 {questions.map(
-                  (_, index) => (
+                  (
+                    _,
+                    index
+                  ) => (
                     <button
-                      key={index}
+                      key={
+                        index
+                      }
                       onClick={() =>
                         setCurrentQuestion(
                           index
@@ -2511,7 +2827,8 @@ export default function ExamPage() {
                           "pointer",
                       }}
                     >
-                      {index + 1}
+                      {index +
+                        1}
                     </button>
                   )
                 )}
@@ -2523,24 +2840,30 @@ export default function ExamPage() {
 
           <aside
             style={{
-              display: "flex",
+              display:
+                "flex",
               flexDirection:
                 "column",
-              gap: "20px",
+              gap:
+                "20px",
             }}
           >
             <div
               style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "20px",
+                background:
+                  "white",
+                borderRadius:
+                  "16px",
+                padding:
+                  "20px",
                 boxShadow:
                   "0 5px 20px rgba(0,0,0,0.08)",
               }}
             >
               <h3
                 style={{
-                  marginTop: 0,
+                  marginTop:
+                    0,
                 }}
               >
                 Camera Monitoring
@@ -2548,7 +2871,8 @@ export default function ExamPage() {
 
               <div
                 style={{
-                  width: "100%",
+                  width:
+                    "100%",
                   overflow:
                     "hidden",
                   borderRadius:
@@ -2566,13 +2890,17 @@ export default function ExamPage() {
                 }}
               >
                 <video
-                  ref={videoRef}
+                  ref={
+                    videoRef
+                  }
                   autoPlay
                   muted
                   playsInline
                   style={{
-                    width: "100%",
-                    height: "100%",
+                    width:
+                      "100%",
+                    height:
+                      "100%",
                     objectFit:
                       "cover",
                   }}
@@ -2581,17 +2909,21 @@ export default function ExamPage() {
 
               <p
                 style={{
-                  fontSize: "14px",
+                  fontSize:
+                    "14px",
                   lineHeight:
                     "1.5",
                   color:
                     cameraReady
                       ? "#16a34a"
                       : "#dc2626",
-                  marginBottom: 0,
+                  marginBottom:
+                    0,
                 }}
               >
-                {cameraStatus}
+                {
+                  cameraStatus
+                }
               </p>
             </div>
 
@@ -2599,16 +2931,20 @@ export default function ExamPage() {
 
             <div
               style={{
-                background: "white",
-                borderRadius: "16px",
-                padding: "20px",
+                background:
+                  "white",
+                borderRadius:
+                  "16px",
+                padding:
+                  "20px",
                 boxShadow:
                   "0 5px 20px rgba(0,0,0,0.08)",
               }}
             >
               <h3
                 style={{
-                  marginTop: 0,
+                  marginTop:
+                    0,
                 }}
               >
                 Examination Status
@@ -2616,8 +2952,10 @@ export default function ExamPage() {
 
               <div
                 style={{
-                  display: "grid",
-                  gap: "12px",
+                  display:
+                    "grid",
+                  gap:
+                    "12px",
                 }}
               >
                 <div
@@ -2628,7 +2966,8 @@ export default function ExamPage() {
                       "space-between",
                     alignItems:
                       "center",
-                    padding: "10px",
+                    padding:
+                      "10px",
                     background:
                       "#f9fafb",
                     borderRadius:
@@ -2664,7 +3003,8 @@ export default function ExamPage() {
                       "space-between",
                     alignItems:
                       "center",
-                    padding: "10px",
+                    padding:
+                      "10px",
                     background:
                       "#f9fafb",
                     borderRadius:
@@ -2697,7 +3037,8 @@ export default function ExamPage() {
                       "space-between",
                     alignItems:
                       "center",
-                    padding: "10px",
+                    padding:
+                      "10px",
                     background:
                       "#f9fafb",
                     borderRadius:
@@ -2724,7 +3065,8 @@ export default function ExamPage() {
                       "space-between",
                     alignItems:
                       "center",
-                    padding: "10px",
+                    padding:
+                      "10px",
                     background:
                       "#f9fafb",
                     borderRadius:
@@ -2751,7 +3093,8 @@ export default function ExamPage() {
                       "space-between",
                     alignItems:
                       "center",
-                    padding: "10px",
+                    padding:
+                      "10px",
                     background:
                       "#f9fafb",
                     borderRadius:
@@ -2778,7 +3121,8 @@ export default function ExamPage() {
                       "space-between",
                     alignItems:
                       "center",
-                    padding: "10px",
+                    padding:
+                      "10px",
                     background:
                       "#f9fafb",
                     borderRadius:
@@ -2803,18 +3147,22 @@ export default function ExamPage() {
 
             <div
               style={{
-                background: "#eff6ff",
+                background:
+                  "#eff6ff",
                 border:
                   "1px solid #bfdbfe",
                 borderRadius:
                   "16px",
-                padding: "20px",
+                padding:
+                  "20px",
               }}
             >
               <h3
                 style={{
-                  marginTop: 0,
-                  color: "#1d4ed8",
+                  marginTop:
+                    0,
+                  color:
+                    "#1d4ed8",
                 }}
               >
                 Security Monitoring
@@ -2822,11 +3170,14 @@ export default function ExamPage() {
 
               <p
                 style={{
-                  color: "#1e40af",
+                  color:
+                    "#1e40af",
                   lineHeight:
                     "1.6",
-                  fontSize: "14px",
-                  marginBottom: 0,
+                  fontSize:
+                    "14px",
+                  marginBottom:
+                    0,
                 }}
               >
                 Your examination is being monitored
@@ -2839,7 +3190,7 @@ export default function ExamPage() {
       </main>
 
       {/* ===================================== */}
-      {/* WARNING MODAL - RENDERED OUTSIDE MAIN */}
+      {/* WARNING MODAL PORTAL */}
       {/* ===================================== */}
 
       {typeof document !==

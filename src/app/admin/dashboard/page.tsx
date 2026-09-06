@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,6 +16,15 @@ type StudentData = {
   percentage: number;
 };
 
+type StudentFaceData = {
+  id: string;
+  studentId: string;
+  fullName: string;
+  email: string;
+  faceImageUrl: string;
+  createdAt: string;
+};
+
 type SidebarOption =
   | "Dashboard"
   | "Registered Students"
@@ -27,6 +35,7 @@ type SidebarOption =
   | "Violations"
   | "Looking Away Records"
   | "Camera Monitoring"
+  | "Student Faces"
   | "Admin Settings";
 
 const ALLOWED_ADMINS = [
@@ -36,6 +45,9 @@ const ALLOWED_ADMINS = [
 
 export default function AdminDashboard() {
   const [students, setStudents] = useState<StudentData[]>([]);
+  const [studentFaces, setStudentFaces] =
+    useState<StudentFaceData[]>([]);
+
   const [activeSection, setActiveSection] =
     useState<SidebarOption>("Dashboard");
 
@@ -95,7 +107,7 @@ export default function AdminDashboard() {
   }, []);
 
   // =====================================
-  // LOAD STUDENTS + EXAM RESULTS
+  // LOAD STUDENTS + EXAM RESULTS + FACES
   // =====================================
 
   const loadStudents = async () => {
@@ -151,16 +163,63 @@ export default function AdminDashboard() {
       }
 
       // =====================================
+      // LOAD REGISTERED STUDENT FACES
+      // =====================================
+
+      const {
+        data: faceData,
+        error: faceError,
+      } = await supabase
+        .from("student_faces")
+        .select("*");
+
+      if (faceError) {
+        console.warn(
+          "Student faces could not be loaded:",
+          faceError.message
+        );
+
+        setStudentFaces([]);
+      } else {
+        const convertedFaces: StudentFaceData[] =
+          (faceData || []).map((face: any) => {
+            const student =
+              (studentData || []).find(
+                (item: any) =>
+                  item.id === face.student_id
+              );
+
+            return {
+              id: face.id,
+              studentId: face.student_id,
+              fullName:
+                student?.full_name ||
+                "Unknown Student",
+              email:
+                student?.email ||
+                "No email",
+              faceImageUrl:
+                face.face_image_url || "",
+              createdAt:
+                face.created_at || "",
+            };
+          });
+
+        setStudentFaces(convertedFaces);
+      }
+
+      // =====================================
       // CONVERT STUDENT DATA
       // =====================================
 
       const convertedStudents: StudentData[] =
         (studentData || []).map((student: any) => {
           const examResult =
-  (examData || []).find(
-    (result: any) =>
-      result.student_id === student.user_id
-  );
+            (examData || []).find(
+              (result: any) =>
+                result.student_id ===
+                student.user_id
+            );
 
           return {
             id:
@@ -222,6 +281,7 @@ export default function AdminDashboard() {
       );
 
       setStudents([]);
+      setStudentFaces([]);
     } finally {
       setLoading(false);
     }
@@ -977,6 +1037,191 @@ export default function AdminDashboard() {
     }
 
     // =====================================
+    // STUDENT FACES
+    // =====================================
+
+    if (
+      activeSection ===
+      "Student Faces"
+    ) {
+      return (
+        <>
+          <PageTitle
+            title="Student Faces"
+            description="View registered student face photographs used for examination verification."
+          />
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "25px",
+            }}
+          >
+            {loading ? (
+              <div
+                style={{
+                  ...contentCardStyle,
+                  gridColumn:
+                    "1 / -1",
+                }}
+              >
+                <EmptyMessage
+                  message="Loading student faces..."
+                />
+              </div>
+            ) : studentFaces.length === 0 ? (
+              <div
+                style={{
+                  ...contentCardStyle,
+                  gridColumn:
+                    "1 / -1",
+                }}
+              >
+                <EmptyMessage
+                  message="No student faces have been registered yet."
+                />
+              </div>
+            ) : (
+              studentFaces.map(
+                (face) => (
+                  <div
+                    key={face.id}
+                    style={{
+                      background:
+                        "white",
+                      borderRadius:
+                        "16px",
+                      padding:
+                        "20px",
+                      boxShadow:
+                        "0 10px 30px rgba(0,0,0,0.08)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width:
+                          "100%",
+                        aspectRatio:
+                          "4 / 3",
+                        borderRadius:
+                          "12px",
+                        overflow:
+                          "hidden",
+                        background:
+                          "#111827",
+                      }}
+                    >
+                      {face.faceImageUrl ? (
+                        <img
+                          src={
+                            face.faceImageUrl
+                          }
+                          alt={`${face.fullName} face`}
+                          style={{
+                            width:
+                              "100%",
+                            height:
+                              "100%",
+                            objectFit:
+                              "cover",
+                            display:
+                              "block",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width:
+                              "100%",
+                            height:
+                              "100%",
+                            display:
+                              "flex",
+                            alignItems:
+                              "center",
+                            justifyContent:
+                              "center",
+                            color:
+                              "white",
+                          }}
+                        >
+                          No image
+                        </div>
+                      )}
+                    </div>
+
+                    <h3
+                      style={{
+                        margin:
+                          "18px 0 5px",
+                      }}
+                    >
+                      {face.fullName}
+                    </h3>
+
+                    <p
+                      style={{
+                        margin:
+                          "0 0 12px",
+                        color:
+                          "#6b7280",
+                        fontSize:
+                          "14px",
+                      }}
+                    >
+                      {face.email}
+                    </p>
+
+                    <div
+                      style={{
+                        display:
+                          "inline-block",
+                        padding:
+                          "6px 10px",
+                        borderRadius:
+                          "999px",
+                        background:
+                          "#dcfce7",
+                        color:
+                          "#166534",
+                        fontSize:
+                          "12px",
+                        fontWeight:
+                          "bold",
+                      }}
+                    >
+                      ✓ Face Registered
+                    </div>
+
+                    {face.createdAt && (
+                      <p
+                        style={{
+                          margin:
+                            "12px 0 0",
+                          color:
+                            "#9ca3af",
+                          fontSize:
+                            "12px",
+                        }}
+                      >
+                        Registered:{" "}
+                        {new Date(
+                          face.createdAt
+                        ).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )
+              )
+            )}
+          </div>
+        </>
+      );
+    }
+
+    // =====================================
     // ADMIN SETTINGS
     // =====================================
 
@@ -1252,6 +1497,20 @@ export default function AdminDashboard() {
           onClick={() =>
             setActiveSection(
               "Camera Monitoring"
+            )
+          }
+        />
+
+        <SidebarButton
+          icon="👤"
+          label="Student Faces"
+          active={
+            activeSection ===
+            "Student Faces"
+          }
+          onClick={() =>
+            setActiveSection(
+              "Student Faces"
             )
           }
         />

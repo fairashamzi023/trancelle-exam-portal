@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import * as cocoSsd from "@tensorflow-models/coco-ssd";
 import "@tensorflow/tfjs";
 import {
@@ -20,12 +25,22 @@ const questions = [
   {
     question:
       "Which part of the brain is mainly responsible for thinking?",
-    options: ["Cerebrum", "Cerebellum", "Medulla", "Spinal cord"],
+    options: [
+      "Cerebrum",
+      "Cerebellum",
+      "Medulla",
+      "Spinal cord",
+    ],
   },
   {
     question:
       "What is the process of acquiring new knowledge called?",
-    options: ["Learning", "Forgetting", "Perception", "Sensation"],
+    options: [
+      "Learning",
+      "Forgetting",
+      "Perception",
+      "Sensation",
+    ],
   },
   {
     question:
@@ -40,17 +55,32 @@ const questions = [
   {
     question:
       "What is the ability to focus on a particular stimulus called?",
-    options: ["Attention", "Memory", "Emotion", "Motivation"],
+    options: [
+      "Attention",
+      "Memory",
+      "Emotion",
+      "Motivation",
+    ],
   },
   {
     question:
       "Which of the following is an example of an emotion?",
-    options: ["Happiness", "Height", "Weight", "Temperature"],
+    options: [
+      "Happiness",
+      "Height",
+      "Weight",
+      "Temperature",
+    ],
   },
   {
     question:
       "The process of interpreting sensory information is called:",
-    options: ["Perception", "Storage", "Forgetting", "Rehearsal"],
+    options: [
+      "Perception",
+      "Storage",
+      "Forgetting",
+      "Rehearsal",
+    ],
   },
   {
     question:
@@ -100,7 +130,8 @@ const correctAnswers = [
 export default function ExamPage() {
   const router = useRouter();
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef =
+    useRef<HTMLVideoElement>(null);
 
   const [authorized, setAuthorized] =
     useState<boolean | null>(null);
@@ -108,8 +139,10 @@ export default function ExamPage() {
   const [examStarted, setExamStarted] =
     useState(false);
 
-  const [instructionsAccepted, setInstructionsAccepted] =
-    useState(false);
+  const [
+    instructionsAccepted,
+    setInstructionsAccepted,
+  ] = useState(false);
 
   const EXAM_DURATION = 10 * 60;
 
@@ -159,10 +192,6 @@ export default function ExamPage() {
   const [examEnded, setExamEnded] =
     useState(false);
 
-  // =====================================
-  // EXAM RESULT STATES
-  // =====================================
-
   const [examScore, setExamScore] =
     useState<number | null>(null);
 
@@ -174,10 +203,6 @@ export default function ExamPage() {
 
   const [resultLoading, setResultLoading] =
     useState(false);
-
-  // =====================================
-  // ONE-TIME EXAM STATES
-  // =====================================
 
   const [examAlreadyUsed, setExamAlreadyUsed] =
     useState(false);
@@ -350,8 +375,6 @@ export default function ExamPage() {
         return;
       }
 
-      // Completed exams should open the saved
-      // result screen, including after refresh.
       if (
         student.exam_completed === true
       ) {
@@ -361,7 +384,6 @@ export default function ExamPage() {
         return;
       }
 
-      // Started but unfinished exams stay locked.
       if (
         student.exam_started === true
       ) {
@@ -419,7 +441,6 @@ export default function ExamPage() {
   // =====================================
 
   const submitExam = async () => {
-    // Prevent duplicate result entries
     if (resultSavedRef.current) {
       return;
     }
@@ -445,10 +466,6 @@ export default function ExamPage() {
 
         return;
       }
-
-      // =================================
-      // CALCULATE SCORE
-      // =================================
 
       const score =
         answers.reduce(
@@ -476,13 +493,7 @@ export default function ExamPage() {
             100
         );
 
-      // =================================
-      // SHOW RESULT IMMEDIATELY
-      // =================================
-
-      setExamScore(
-        score
-      );
+      setExamScore(score);
 
       setExamTotalQuestions(
         questions.length
@@ -491,10 +502,6 @@ export default function ExamPage() {
       setExamPercentage(
         percentage
       );
-
-      // =================================
-      // SAVE RESULT
-      // =================================
 
       const { error } =
         await supabase
@@ -544,17 +551,6 @@ export default function ExamPage() {
         return;
       }
 
-      // =================================
-      // MARK EXAM AS COMPLETED
-      // =================================
-
-      // The account was already locked
-      // with exam_started = true when
-      // the student clicked Start Exam.
-      //
-      // Now we permanently mark the
-      // attempt as completed as well.
-
       const {
         error: completionError,
       } = await supabase
@@ -577,8 +573,6 @@ export default function ExamPage() {
         );
       }
 
-      // Remove locally saved answers
-
       localStorage.removeItem(
         "examAnswers"
       );
@@ -587,8 +581,6 @@ export default function ExamPage() {
         "Exam result saved successfully."
       );
 
-      // Fetch the saved database result again so
-      // the finished screen always uses Supabase data.
       await fetchExamResult();
     } catch (error) {
       console.error(
@@ -779,7 +771,7 @@ export default function ExamPage() {
         >
       | null = null;
 
-          const startMonitoring =
+    const startMonitoring =
       async () => {
         try {
           setCameraStatus(
@@ -820,11 +812,9 @@ export default function ExamPage() {
             );
           }
 
-          // Load COCO SSD
           const objectModel =
             await cocoSsd.load();
 
-          // Load MediaPipe Face Landmarker
           const vision =
             await FilesetResolver.forVisionTasks(
               "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -901,7 +891,6 @@ export default function ExamPage() {
                     detectedCount
                   );
 
-                  // No person detected
                   if (
                     detectedCount === 0
                   ) {
@@ -949,7 +938,6 @@ export default function ExamPage() {
                     return;
                   }
 
-                  // More than one person
                   if (
                     detectedCount > 1
                   ) {
@@ -1017,14 +1005,6 @@ export default function ExamPage() {
 
                   const landmarks =
                     result.faceLandmarks[0];
-
-                  /*
-                    Landmark positions used:
-
-                    33  = left eye outer
-                    263 = right eye outer
-                    1   = nose
-                  */
 
                   const leftEye =
                     landmarks[33];
@@ -1187,10 +1167,6 @@ export default function ExamPage() {
         return;
       }
 
-      // =================================
-      // CHECK EXAM STATUS AGAIN
-      // =================================
-
       const {
         data: student,
         error: checkError,
@@ -1221,10 +1197,6 @@ export default function ExamPage() {
         return;
       }
 
-      // =================================
-      // PERMANENT ONE-TIME LOCK
-      // =================================
-
       if (
         student.exam_started ===
           true ||
@@ -1241,10 +1213,6 @@ export default function ExamPage() {
 
         return;
       }
-
-      // =================================
-      // LOCK ATTEMPT IN SUPABASE
-      // =================================
 
       const {
         error: updateError,
@@ -1280,10 +1248,6 @@ export default function ExamPage() {
         return;
       }
 
-      // =================================
-      // ENTER FULLSCREEN
-      // =================================
-
       try {
         if (
           document.documentElement
@@ -1300,10 +1264,6 @@ export default function ExamPage() {
           fullscreenError
         );
       }
-
-      // =================================
-      // START EXAM
-      // =================================
 
       setExamStarted(
         true
@@ -1431,7 +1391,7 @@ export default function ExamPage() {
       );
     };
 
-      // =====================================
+  // =====================================
   // EXAM ALREADY USED SCREEN
   // =====================================
 
@@ -1447,7 +1407,9 @@ export default function ExamPage() {
           background: "#f5f7fb",
         }}
       >
-        <p>Checking examination access...</p>
+        <p>
+          Checking examination access...
+        </p>
       </main>
     );
   }
@@ -1519,21 +1481,14 @@ export default function ExamPage() {
             }}
             style={{
               marginTop: "25px",
-              padding:
-                "13px 25px",
+              padding: "13px 25px",
               border: "none",
-              borderRadius:
-                "10px",
-              background:
-                "#2563eb",
-              color:
-                "white",
-              fontSize:
-                "16px",
-              fontWeight:
-                "bold",
-              cursor:
-                "pointer",
+              borderRadius: "10px",
+              background: "#2563eb",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "bold",
+              cursor: "pointer",
             }}
           >
             Return to Login
@@ -1566,26 +1521,19 @@ export default function ExamPage() {
             width: "100%",
             maxWidth: "750px",
             background: "white",
-            borderRadius:
-              "18px",
-            padding:
-              "40px",
+            borderRadius: "18px",
+            padding: "40px",
             boxShadow:
               "0 10px 30px rgba(0,0,0,0.12)",
           }}
         >
           <p
             style={{
-              textAlign:
-                "center",
-              color:
-                "#2563eb",
-              fontWeight:
-                "bold",
-              letterSpacing:
-                "2px",
-              fontSize:
-                "13px",
+              textAlign: "center",
+              color: "#2563eb",
+              fontWeight: "bold",
+              letterSpacing: "2px",
+              fontSize: "13px",
             }}
           >
             TRANCELLE INTERNATIONAL ACADEMY
@@ -1593,10 +1541,8 @@ export default function ExamPage() {
 
           <h1
             style={{
-              textAlign:
-                "center",
-              marginBottom:
-                "10px",
+              textAlign: "center",
+              marginBottom: "10px",
             }}
           >
             Examination Instructions
@@ -1604,14 +1550,10 @@ export default function ExamPage() {
 
           <p
             style={{
-              textAlign:
-                "center",
-              color:
-                "#4b5563",
-              lineHeight:
-                "1.6",
-              marginBottom:
-                "30px",
+              textAlign: "center",
+              color: "#4b5563",
+              lineHeight: "1.6",
+              marginBottom: "30px",
             }}
           >
             Please carefully read all instructions
@@ -1620,16 +1562,11 @@ export default function ExamPage() {
 
           <div
             style={{
-              background:
-                "#f8fafc",
-              borderRadius:
-                "12px",
-              padding:
-                "25px",
-              lineHeight:
-                "1.8",
-              color:
-                "#374151",
+              background: "#f8fafc",
+              borderRadius: "12px",
+              padding: "25px",
+              lineHeight: "1.8",
+              color: "#374151",
             }}
           >
             <h3>
@@ -1638,8 +1575,7 @@ export default function ExamPage() {
 
             <ol
               style={{
-                paddingLeft:
-                  "20px",
+                paddingLeft: "20px",
               }}
             >
               <li>
@@ -1694,20 +1630,13 @@ export default function ExamPage() {
 
           <label
             style={{
-              display:
-                "flex",
-              alignItems:
-                "flex-start",
-              gap:
-                "12px",
-              marginTop:
-                "25px",
-              cursor:
-                "pointer",
-              color:
-                "#374151",
-              lineHeight:
-                "1.5",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              marginTop: "25px",
+              cursor: "pointer",
+              color: "#374151",
+              lineHeight: "1.5",
             }}
           >
             <input
@@ -1723,8 +1652,7 @@ export default function ExamPage() {
                 )
               }
               style={{
-                marginTop:
-                  "4px",
+                marginTop: "4px",
               }}
             />
 
@@ -1748,27 +1676,19 @@ export default function ExamPage() {
               startExam
             }
             style={{
-              width:
-                "100%",
-              marginTop:
-                "30px",
-              padding:
-                "16px",
-              border:
-                "none",
-              borderRadius:
-                "10px",
+              width: "100%",
+              marginTop: "30px",
+              padding: "16px",
+              border: "none",
+              borderRadius: "10px",
               background:
                 instructionsAccepted &&
                 !startingExam
                   ? "#2563eb"
                   : "#9ca3af",
-              color:
-                "white",
-              fontSize:
-                "17px",
-              fontWeight:
-                "bold",
+              color: "white",
+              fontSize: "17px",
+              fontWeight: "bold",
               cursor:
                 instructionsAccepted &&
                 !startingExam
@@ -1793,50 +1713,33 @@ export default function ExamPage() {
     return (
       <main
         style={{
-          minHeight:
-            "100vh",
-          background:
-            "#f5f7fb",
-          display:
-            "flex",
-          justifyContent:
-            "center",
-          alignItems:
-            "center",
-          padding:
-            "20px",
-          fontFamily:
-            "Arial, sans-serif",
+          minHeight: "100vh",
+          background: "#f5f7fb",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "20px",
+          fontFamily: "Arial, sans-serif",
         }}
       >
         <div
           style={{
-            width:
-              "100%",
-            maxWidth:
-              "650px",
-            background:
-              "white",
-            padding:
-              "40px",
-            borderRadius:
-              "18px",
+            width: "100%",
+            maxWidth: "650px",
+            background: "white",
+            padding: "40px",
+            borderRadius: "18px",
             boxShadow:
               "0 10px 30px rgba(0,0,0,0.12)",
-            textAlign:
-              "center",
+            textAlign: "center",
           }}
         >
           <p
             style={{
-              color:
-                "#2563eb",
-              fontWeight:
-                "bold",
-              letterSpacing:
-                "2px",
-              fontSize:
-                "13px",
+              color: "#2563eb",
+              fontWeight: "bold",
+              letterSpacing: "2px",
+              fontSize: "13px",
             }}
           >
             TRANCELLE INTERNATIONAL ACADEMY
@@ -1844,10 +1747,8 @@ export default function ExamPage() {
 
           <h1
             style={{
-              color:
-                "#16a34a",
-              marginTop:
-                "10px",
+              color: "#16a34a",
+              marginTop: "10px",
             }}
           >
             Examination Finished
@@ -1855,12 +1756,9 @@ export default function ExamPage() {
 
           <p
             style={{
-              color:
-                "#4b5563",
-              lineHeight:
-                "1.6",
-              fontSize:
-                "17px",
+              color: "#4b5563",
+              lineHeight: "1.6",
+              fontSize: "17px",
             }}
           >
             Your examination attempt has ended and
@@ -1870,40 +1768,32 @@ export default function ExamPage() {
           {resultLoading ? (
             <div
               style={{
-                marginTop:
-                  "30px",
-                padding:
-                  "30px",
-                background:
-                  "#f8fafc",
-                borderRadius:
-                  "14px",
+                marginTop: "30px",
+                padding: "30px",
+                background: "#f8fafc",
+                borderRadius: "14px",
               }}
             >
-              <p>Loading your result...</p>
+              <p>
+                Loading your result...
+              </p>
             </div>
           ) : (
             <>
               <div
                 style={{
-                  marginTop:
-                    "30px",
-                  padding:
-                    "30px",
-                  background:
-                    "#f0fdf4",
+                  marginTop: "30px",
+                  padding: "30px",
+                  background: "#f0fdf4",
                   border:
                     "1px solid #bbf7d0",
-                  borderRadius:
-                    "14px",
+                  borderRadius: "14px",
                 }}
               >
                 <h2
                   style={{
-                    marginTop:
-                      0,
-                    color:
-                      "#166534",
+                    marginTop: 0,
+                    color: "#166534",
                   }}
                 >
                   Your Result
@@ -1911,57 +1801,53 @@ export default function ExamPage() {
 
                 <p
                   style={{
-                    margin:
-                      "15px 0",
-                    fontSize:
-                      "28px",
-                    fontWeight:
-                      "bold",
-                    color:
-                      "#111827",
+                    margin: "15px 0",
+                    fontSize: "28px",
+                    fontWeight: "bold",
+                    color: "#111827",
                   }}
                 >
-                  Score: {examScore !== null
+                  Score:{" "}
+                  {examScore !== null
                     ? examScore
-                    : "--"} / {examTotalQuestions !== null
+                    : "--"}{" "}
+                  /{" "}
+                  {examTotalQuestions !==
+                  null
                     ? examTotalQuestions
                     : questions.length}
                 </p>
 
                 <p
                   style={{
-                    margin:
-                      0,
-                    fontSize:
-                      "22px",
-                    fontWeight:
-                      "bold",
-                    color:
-                      "#16a34a",
+                    margin: 0,
+                    fontSize: "22px",
+                    fontWeight: "bold",
+                    color: "#16a34a",
                   }}
                 >
-                  Percentage: {examPercentage !== null
+                  Percentage:{" "}
+                  {examPercentage !==
+                  null
                     ? `${examPercentage}%`
                     : "--"}
                 </p>
               </div>
 
               <div
-  style={{
-    marginTop: "20px",
-    padding: "25px",
-    background: "#f8fafc",
-    borderRadius: "14px",
-    textAlign: "left",
-    color: "#111827",
-  }}
->
+                style={{
+                  marginTop: "20px",
+                  padding: "25px",
+                  background: "#f8fafc",
+                  borderRadius: "14px",
+                  textAlign: "left",
+                  color: "#111827",
+                }}
+              >
                 <h3
                   style={{
-                    textAlign:
-                      "center",
-                    marginTop:
-                      0,
+                    textAlign: "center",
+                    marginTop: 0,
                   }}
                 >
                   Examination Monitoring Summary
@@ -1969,64 +1855,65 @@ export default function ExamPage() {
 
                 <div
                   style={{
-                    display:
-                      "grid",
-                    gap:
-                      "12px",
+                    display: "grid",
+                    gap: "12px",
                   }}
                 >
                   <div
                     style={{
-                      display:
-                        "flex",
+                      display: "flex",
                       justifyContent:
                         "space-between",
-                      padding:
-                        "12px",
-                      background:
-                        "white",
-                      borderRadius:
-                        "8px",
+                      padding: "12px",
+                      background: "white",
+                      borderRadius: "8px",
                     }}
                   >
-                    <span>Looking Away Warnings</span>
-                    <strong>{lookingAwayCount}</strong>
+                    <span>
+                      Looking Away Warnings
+                    </span>
+
+                    <strong>
+                      {lookingAwayCount}
+                    </strong>
                   </div>
 
                   <div
                     style={{
-                      display:
-                        "flex",
+                      display: "flex",
                       justifyContent:
                         "space-between",
-                      padding:
-                        "12px",
-                      background:
-                        "white",
-                      borderRadius:
-                        "8px",
+                      padding: "12px",
+                      background: "white",
+                      borderRadius: "8px",
                     }}
                   >
-                    <span>Person / Camera Warnings</span>
-                    <strong>{personWarningCount}</strong>
+                    <span>
+                      Person / Camera Warnings
+                    </span>
+
+                    <strong>
+                      {personWarningCount}
+                    </strong>
                   </div>
 
                   <div
                     style={{
-                      display:
-                        "flex",
+                      display: "flex",
                       justifyContent:
                         "space-between",
-                      padding:
-                        "12px",
-                      background:
-                        "white",
-                      borderRadius:
-                        "8px",
+                      padding: "12px",
+                      background: "white",
+                      borderRadius: "8px",
                     }}
                   >
-                    <span>Tab Switches</span>
-                    <strong>{tabSwitchCount}</strong>
+                    <span>
+                      Tab Switches
+                    </span>
+
+                    <strong>
+                      {tabSwitchCount}
+                    </strong>
                   </div>
                 </div>
               </div>
@@ -2035,31 +1922,25 @@ export default function ExamPage() {
 
           <div
             style={{
-              marginTop:
-                "25px",
-              padding:
-                "18px",
-              background:
-                "#fef2f2",
+              marginTop: "25px",
+              padding: "18px",
+              background: "#fef2f2",
               border:
                 "1px solid #fecaca",
-              borderRadius:
-                "12px",
+              borderRadius: "12px",
             }}
           >
             <p
               style={{
-                margin:
-                  0,
-                color:
-                  "#dc2626",
-                fontWeight:
-                  "bold",
-                lineHeight:
-                  "1.6",
+                margin: 0,
+                color: "#dc2626",
+                fontWeight: "bold",
+                lineHeight: "1.6",
               }}
             >
-              Your examination attempt has been permanently completed. You cannot start or take this examination again.
+              Your examination attempt has been
+              permanently completed. You cannot
+              start or take this examination again.
             </p>
           </div>
 
@@ -2072,24 +1953,15 @@ export default function ExamPage() {
               );
             }}
             style={{
-              marginTop:
-                "25px",
-              padding:
-                "14px 28px",
-              border:
-                "none",
-              borderRadius:
-                "10px",
-              background:
-                "#2563eb",
-              color:
-                "white",
-              fontSize:
-                "16px",
-              fontWeight:
-                "bold",
-              cursor:
-                "pointer",
+              marginTop: "25px",
+              padding: "14px 28px",
+              border: "none",
+              borderRadius: "10px",
+              background: "#2563eb",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "bold",
+              cursor: "pointer",
             }}
           >
             Return to Login
@@ -2100,878 +1972,121 @@ export default function ExamPage() {
   }
 
   // =====================================
-  // MAIN EXAM PAGE STARTS HERE
+  // WARNING PORTAL
   // =====================================
 
-  return (
-    <main
-      style={{
-        minHeight:
-          "100vh",
-        background:
-          "#f3f4f6",
-        fontFamily:
-          "Arial, sans-serif",
-        color:
-          "#111827",
-      }}
-    >
-      <header
-        style={{
-          background:
-            "#111827",
-          color:
-            "white",
-          padding:
-            "15px 25px",
-          display:
-            "flex",
-          justifyContent:
-            "space-between",
-          alignItems:
-            "center",
-          position:
-            "sticky",
-          top:
-            0,
-          zIndex:
-            100,
-        }}
-      >
-        <div>
-          <p
-            style={{
-              margin:
-                0,
-              fontSize:
-                "12px",
-              letterSpacing:
-                "1.5px",
-              color:
-                "#93c5fd",
-            }}
-          >
-            TRANCELLE INTERNATIONAL ACADEMY
-          </p>
-
-          <h2
-            style={{
-              margin:
-                "5px 0 0",
-              fontSize:
-                "20px",
-            }}
-          >
-            Online Examination
-          </h2>
-        </div>
-
+  const warningModal =
+    showWarning
+      ? (
         <div
+          role="dialog"
+          aria-modal="true"
           style={{
-            textAlign:
-              "right",
-          }}
-        >
-          <p
-            style={{
-              margin:
-                0,
-              fontSize:
-                "12px",
-              color:
-                "#d1d5db",
-            }}
-          >
-            Time Remaining
-          </p>
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: "100vw",
+            height: "100vh",
 
-          <strong
-            style={{
-              fontSize:
-                "22px",
-              color:
-                timeLeft <= 60
-                  ? "#f87171"
-                  : "#ffffff",
-            }}
-          >
-            {formatTime(
-              timeLeft
-            )}
-          </strong>
-        </div>
-      </header>
-
-      <div
-        style={{
-          display:
-            "grid",
-          gridTemplateColumns:
-            "minmax(0, 1fr) 320px",
-          gap:
-            "25px",
-          padding:
-            "25px",
-          maxWidth:
-            "1400px",
-          margin:
-            "0 auto",
-        }}
-      >
-        <section
-          style={{
             background:
-              "white",
-            borderRadius:
-              "16px",
-            padding:
-              "30px",
-            boxShadow:
-              "0 5px 20px rgba(0,0,0,0.08)",
+              "rgba(0,0,0,0.75)",
+
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+
+            padding: "20px",
+            boxSizing: "border-box",
+
+            zIndex: 2147483647,
+
+            isolation: "isolate",
+
+            pointerEvents: "auto",
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
           }}
         >
-          <p
-            style={{
-              color:
-                "#2563eb",
-              fontWeight:
-                "bold",
-              marginTop:
-                0,
-            }}
-          >
-            Question{" "}
-            {currentQuestion +
-              1}{" "}
-            of{" "}
-            {questions.length}
-          </p>
-
-          <h2
-            style={{
-              fontSize:
-                "24px",
-              lineHeight:
-                "1.5",
-              marginBottom:
-                "30px",
-            }}
-          >
-            {
-              questions[
-                currentQuestion
-              ].question
-            }
-          </h2>
-
           <div
             style={{
-              display:
-                "grid",
-              gap:
-                "15px",
-            }}
-          >
-            {questions[
-              currentQuestion
-            ].options.map(
-              (
-                option
-              ) => (
-                <button
-                  key={
-                    option
-                  }
-                  onClick={() =>
-                    selectAnswer(
-                      option
-                    )
-                  }
-                  style={{
-                    width:
-                      "100%",
-                    padding:
-                      "18px",
-                    border:
-                      answers[
-                        currentQuestion
-                      ] ===
-                      option
-                        ? "2px solid #2563eb"
-                        : "1px solid #d1d5db",
-                    borderRadius:
-                      "10px",
-                    background:
-                      answers[
-                        currentQuestion
-                      ] ===
-                      option
-                        ? "#eff6ff"
-                        : "white",
-                    textAlign:
-                      "left",
-                    fontSize:
-                      "16px",
-                    cursor:
-                      "pointer",
-                    color:
-                      "#111827",
-                  }}
-                >
-                  {option}
-                </button>
-              )
-            )}
-          </div>          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: "15px",
-              marginTop: "35px",
-            }}
-          >
-            <button
-              onClick={() =>
-                setCurrentQuestion(
-                  (previous) =>
-                    Math.max(
-                      0,
-                      previous - 1
-                    )
-                )
-              }
-              disabled={
-                currentQuestion === 0
-              }
-              style={{
-                padding: "13px 22px",
-                border: "none",
-                borderRadius: "10px",
-                background:
-                  currentQuestion === 0
-                    ? "#d1d5db"
-                    : "#6b7280",
-                color: "white",
-                fontSize: "16px",
-                fontWeight: "bold",
-                cursor:
-                  currentQuestion === 0
-                    ? "not-allowed"
-                    : "pointer",
-              }}
-            >
-              ← Previous
-            </button>
+              position: "relative",
 
-            {currentQuestion <
-            questions.length - 1 ? (
-              <button
-                onClick={() =>
-                  setCurrentQuestion(
-                    (previous) =>
-                      Math.min(
-                        questions.length -
-                          1,
-                        previous + 1
-                      )
+              width: "100%",
+              maxWidth: "500px",
+
+              background: "white",
+
+              borderRadius: "18px",
+
+              padding: "35px",
+
+              textAlign: "center",
+
+              boxSizing: "border-box",
+
+              boxShadow:
+                "0 20px 60px rgba(0,0,0,0.5)",
+
+              zIndex: 2147483647,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <div
+              style={{
+                width: "70px",
+                height: "70px",
+                margin: "0 auto 20px",
+                borderRadius: "50%",
+                background:
+                  warningTitle.includes(
+                    "ENDED"
                   )
-                }
-                style={{
-                  padding:
-                    "13px 22px",
-                  border:
-                    "none",
-                  borderRadius:
-                    "10px",
-                  background:
-                    "#2563eb",
-                  color:
-                    "white",
-                  fontSize:
-                    "16px",
-                  fontWeight:
-                    "bold",
-                  cursor:
-                    "pointer",
-                }}
-              >
-                Next →
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  const unanswered =
-                    answers.filter(
-                      (
-                        answer
-                      ) =>
-                        answer === ""
-                    ).length;
-
-                  if (
-                    unanswered > 0
-                  ) {
-                    const confirmSubmit =
-                      window.confirm(
-                        `You still have ${unanswered} unanswered question(s). Do you want to submit the exam anyway?`
-                      );
-
-                    if (
-                      !confirmSubmit
-                    ) {
-                      return;
-                    }
-                  } else {
-                    const confirmSubmit =
-                      window.confirm(
-                        "Are you sure you want to submit your examination? You cannot take this examination again."
-                      );
-
-                    if (
-                      !confirmSubmit
-                    ) {
-                      return;
-                    }
-                  }
-
-                  submitExam();
-                }}
-                style={{
-                  padding:
-                    "13px 22px",
-                  border:
-                    "none",
-                  borderRadius:
-                    "10px",
-                  background:
-                    "#dc2626",
-                  color:
-                    "white",
-                  fontSize:
-                    "16px",
-                  fontWeight:
-                    "bold",
-                  cursor:
-                    "pointer",
-                }}
-              >
-                Submit Exam
-              </button>
-            )}
-          </div>
-
-          {/* ========================= */}
-          {/* QUESTION NAVIGATION */}
-          {/* ========================= */}
-
-          <div
-            style={{
-              marginTop: "35px",
-              paddingTop: "25px",
-              borderTop:
-                "1px solid #e5e7eb",
-            }}
-          >
-            <p
-              style={{
-                fontWeight:
-                  "bold",
-                marginBottom:
-                  "15px",
+                    ? "#fee2e2"
+                    : "#fef3c7",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "35px",
               }}
             >
-              Question Navigation
-            </p>
-
-            <div
-              style={{
-                display:
-                  "flex",
-                flexWrap:
-                  "wrap",
-                gap:
-                  "10px",
-              }}
-            >
-              {questions.map(
-                (
-                  _,
-                  index
-                ) => (
-                  <button
-                    key={
-                      index
-                    }
-                    onClick={() =>
-                      setCurrentQuestion(
-                        index
-                      )
-                    }
-                    style={{
-                      width:
-                        "42px",
-                      height:
-                        "42px",
-                      borderRadius:
-                        "8px",
-                      border:
-                        currentQuestion ===
-                        index
-                          ? "2px solid #111827"
-                          : "1px solid #d1d5db",
-                      background:
-                        answers[
-                          index
-                        ]
-                          ? "#dcfce7"
-                          : currentQuestion ===
-                            index
-                          ? "#dbeafe"
-                          : "white",
-                      color:
-                        "#111827",
-                      fontWeight:
-                        "bold",
-                      cursor:
-                        "pointer",
-                    }}
-                  >
-                    {index + 1}
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* ========================= */}
-        {/* CAMERA MONITORING PANEL */}
-        {/* ========================= */}
-
-        <aside
-          style={{
-            display:
-              "flex",
-            flexDirection:
-              "column",
-            gap:
-              "20px",
-          }}
-        >
-          <div
-            style={{
-              background:
-                "white",
-              borderRadius:
-                "16px",
-              padding:
-                "20px",
-              boxShadow:
-                "0 5px 20px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h3
-              style={{
-                marginTop:
-                  0,
-              }}
-            >
-              Camera Monitoring
-            </h3>
-
-            <div
-              style={{
-                width:
-                  "100%",
-                overflow:
-                  "hidden",
-                borderRadius:
-                  "12px",
-                background:
-                  "#111827",
-                aspectRatio:
-                  "4 / 3",
-                display:
-                  "flex",
-                alignItems:
-                  "center",
-                justifyContent:
-                  "center",
-              }}
-            >
-              <video
-                ref={
-                  videoRef
-                }
-                autoPlay
-                muted
-                playsInline
-                style={{
-                  width:
-                    "100%",
-                  height:
-                    "100%",
-                  objectFit:
-                    "cover",
-                }}
-              />
+              {warningTitle.includes(
+                "ENDED"
+              )
+                ? "🚫"
+                : "⚠️"}
             </div>
 
-            <p
-              style={{
-                fontSize:
-                  "14px",
-                lineHeight:
-                  "1.5",
-                color:
-                  cameraReady
-                    ? "#16a34a"
-                    : "#dc2626",
-                marginBottom:
-                  0,
-              }}
-            >
-              {cameraStatus}
-            </p>
-          </div>
-
-          {/* ========================= */}
-          {/* EXAM STATUS */}
-          {/* ========================= */}
-
-          <div
-            style={{
-              background:
-                "white",
-              borderRadius:
-                "16px",
-              padding:
-                "20px",
-              boxShadow:
-                "0 5px 20px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h3
-              style={{
-                marginTop:
-                  0,
-              }}
-            >
-              Examination Status
-            </h3>
-
-            <div
-              style={{
-                display:
-                  "grid",
-                gap:
-                  "12px",
-              }}
-            >
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems:
-                    "center",
-                  padding:
-                    "10px",
-                  background:
-                    "#f9fafb",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-                <span>
-                  Questions Answered
-                </span>
-
-                <strong>
-                  {
-                    answers.filter(
-                      (
-                        answer
-                      ) =>
-                        answer !== ""
-                    ).length
-                  }
-                  /
-                  {
-                    questions.length
-                  }
-                </strong>
-              </div>
-
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems:
-                    "center",
-                  padding:
-                    "10px",
-                  background:
-                    "#f9fafb",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-                <span>
-                  Camera
-                </span>
-
-                <strong
-                  style={{
-                    color:
-                      cameraReady
-                        ? "#16a34a"
-                        : "#dc2626",
-                  }}
-                >
-                  {cameraReady
-                    ? "Active"
-                    : "Checking"}
-                </strong>
-              </div>
-
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems:
-                    "center",
-                  padding:
-                    "10px",
-                  background:
-                    "#f9fafb",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-                <span>
-                  People Detected
-                </span>
-
-                <strong>
-                  {personCount ===
-                  null
-                    ? "Checking"
-                    : personCount}
-                </strong>
-              </div>
-
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems:
-                    "center",
-                  padding:
-                    "10px",
-                  background:
-                    "#f9fafb",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-                <span>
-                  Looking Away Warnings
-                </span>
-
-                <strong>
-                  {
-                    lookingAwayCount
-                  }
-                  /5
-                </strong>
-              </div>
-
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems:
-                    "center",
-                  padding:
-                    "10px",
-                  background:
-                    "#f9fafb",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-                <span>
-                  Person Warnings
-                </span>
-
-                <strong>
-                  {
-                    personWarningCount
-                  }
-                  /5
-                </strong>
-              </div>
-
-              <div
-                style={{
-                  display:
-                    "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems:
-                    "center",
-                  padding:
-                    "10px",
-                  background:
-                    "#f9fafb",
-                  borderRadius:
-                    "8px",
-                }}
-              >
-                <span>
-                  Tab Switches
-                </span>
-
-                <strong>
-                  {
-                    tabSwitchCount
-                  }
-                  /3
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          {/* ========================= */}
-          {/* SECURITY STATUS */}
-          {/* ========================= */}
-
-          <div
-            style={{
-              background:
-                "#eff6ff",
-              border:
-                "1px solid #bfdbfe",
-              borderRadius:
-                "16px",
-              padding:
-                "20px",
-            }}
-          >
-            <h3
-              style={{
-                marginTop:
-                  0,
-                color:
-                  "#1d4ed8",
-              }}
-            >
-              Security Monitoring
-            </h3>
-
-            <p
-              style={{
-                color:
-                  "#1e40af",
-                lineHeight:
-                  "1.6",
-                fontSize:
-                  "14px",
-                marginBottom:
-                  0,
-              }}
-            >
-              Your examination is being monitored
-              using camera detection and examination
-              security checks.
-            </p>
-          </div>
-        </aside>
-      </div>
-
-      {/* ========================= */}
-      {/* WARNING MODAL */}
-      {/* ========================= */}
-
-      {showWarning && (
-        <div
-          style={{
-            position:
-              "fixed",
-            inset:
-              0,
-            background:
-              "rgba(0,0,0,0.65)",
-            display:
-              "flex",
-            justifyContent:
-              "center",
-            alignItems:
-              "center",
-            padding:
-              "20px",
-            zIndex:
-              1000,
-          }}
-        >
-          <div
-            style={{
-              width:
-                "100%",
-              maxWidth:
-                "500px",
-              background:
-                "white",
-              borderRadius:
-                "18px",
-              padding:
-                "35px",
-              textAlign:
-                "center",
-              boxShadow:
-                "0 20px 50px rgba(0,0,0,0.3)",
-            }}
-          >
             <h2
               style={{
-                marginTop:
-                  0,
+                marginTop: 0,
+                marginBottom: "15px",
                 color:
                   warningTitle.includes(
                     "ENDED"
                   )
                     ? "#dc2626"
                     : "#d97706",
+                fontSize: "25px",
               }}
             >
-              {
-                warningTitle
-              }
+              {warningTitle}
             </h2>
 
             <p
               style={{
-                color:
-                  "#374151",
-                fontSize:
-                  "17px",
-                lineHeight:
-                  "1.6",
+                color: "#374151",
+                fontSize: "17px",
+                lineHeight: "1.6",
+                margin:
+                  "0 0 10px",
               }}
             >
-              {
-                warningMessage
-              }
+              {warningMessage}
             </p>
 
             {!examEnded && (
@@ -2980,24 +2095,17 @@ export default function ExamPage() {
                   closeWarning
                 }
                 style={{
-                  marginTop:
-                    "20px",
+                  marginTop: "20px",
                   padding:
                     "13px 28px",
-                  border:
-                    "none",
-                  borderRadius:
-                    "10px",
-                  background:
-                    "#2563eb",
-                  color:
-                    "white",
-                  fontSize:
-                    "16px",
-                  fontWeight:
-                    "bold",
-                  cursor:
-                    "pointer",
+                  border: "none",
+                  borderRadius: "10px",
+                  background: "#2563eb",
+                  color: "white",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  minWidth: "150px",
                 }}
               >
                 I Understand
@@ -3005,7 +2113,742 @@ export default function ExamPage() {
             )}
           </div>
         </div>
-      )}
-    </main>
+      )
+      : null;
+
+  // =====================================
+  // MAIN EXAM PAGE
+  // =====================================
+
+  return (
+    <>
+      <main
+        style={{
+          minHeight: "100vh",
+          background: "#f3f4f6",
+          fontFamily:
+            "Arial, sans-serif",
+          color: "#111827",
+
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <header
+          style={{
+            background: "#111827",
+            color: "white",
+            padding: "15px 25px",
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems: "center",
+            position: "sticky",
+            top: 0,
+            zIndex: 100,
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "12px",
+                letterSpacing: "1.5px",
+                color: "#93c5fd",
+              }}
+            >
+              TRANCELLE INTERNATIONAL ACADEMY
+            </p>
+
+            <h2
+              style={{
+                margin:
+                  "5px 0 0",
+                fontSize: "20px",
+              }}
+            >
+              Online Examination
+            </h2>
+          </div>
+
+          <div
+            style={{
+              textAlign: "right",
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                fontSize: "12px",
+                color: "#d1d5db",
+              }}
+            >
+              Time Remaining
+            </p>
+
+            <strong
+              style={{
+                fontSize: "22px",
+                color:
+                  timeLeft <= 60
+                    ? "#f87171"
+                    : "#ffffff",
+              }}
+            >
+              {formatTime(
+                timeLeft
+              )}
+            </strong>
+          </div>
+        </header>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "minmax(0, 1fr) 320px",
+            gap: "25px",
+            padding: "25px",
+            maxWidth: "1400px",
+            margin: "0 auto",
+          }}
+        >
+          <section
+            style={{
+              background: "white",
+              borderRadius: "16px",
+              padding: "30px",
+              boxShadow:
+                "0 5px 20px rgba(0,0,0,0.08)",
+            }}
+          >
+            <p
+              style={{
+                color: "#2563eb",
+                fontWeight: "bold",
+                marginTop: 0,
+              }}
+            >
+              Question{" "}
+              {currentQuestion + 1}{" "}
+              of{" "}
+              {questions.length}
+            </p>
+
+            <h2
+              style={{
+                fontSize: "24px",
+                lineHeight: "1.5",
+                marginBottom: "30px",
+              }}
+            >
+              {
+                questions[
+                  currentQuestion
+                ].question
+              }
+            </h2>
+
+            <div
+              style={{
+                display: "grid",
+                gap: "15px",
+              }}
+            >
+              {questions[
+                currentQuestion
+              ].options.map(
+                (option) => (
+                  <button
+                    key={option}
+                    onClick={() =>
+                      selectAnswer(
+                        option
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "18px",
+                      border:
+                        answers[
+                          currentQuestion
+                        ] ===
+                        option
+                          ? "2px solid #2563eb"
+                          : "1px solid #d1d5db",
+                      borderRadius:
+                        "10px",
+                      background:
+                        answers[
+                          currentQuestion
+                        ] ===
+                        option
+                          ? "#eff6ff"
+                          : "white",
+                      textAlign:
+                        "left",
+                      fontSize: "16px",
+                      cursor:
+                        "pointer",
+                      color:
+                        "#111827",
+                    }}
+                  >
+                    {option}
+                  </button>
+                )
+              )}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                gap: "15px",
+                marginTop: "35px",
+              }}
+            >
+              <button
+                onClick={() =>
+                  setCurrentQuestion(
+                    (previous) =>
+                      Math.max(
+                        0,
+                        previous - 1
+                      )
+                  )
+                }
+                disabled={
+                  currentQuestion ===
+                  0
+                }
+                style={{
+                  padding:
+                    "13px 22px",
+                  border: "none",
+                  borderRadius:
+                    "10px",
+                  background:
+                    currentQuestion ===
+                    0
+                      ? "#d1d5db"
+                      : "#6b7280",
+                  color: "white",
+                  fontSize:
+                    "16px",
+                  fontWeight:
+                    "bold",
+                  cursor:
+                    currentQuestion ===
+                    0
+                      ? "not-allowed"
+                      : "pointer",
+                }}
+              >
+                ← Previous
+              </button>
+
+              {currentQuestion <
+              questions.length -
+                1 ? (
+                <button
+                  onClick={() =>
+                    setCurrentQuestion(
+                      (previous) =>
+                        Math.min(
+                          questions.length -
+                            1,
+                          previous + 1
+                        )
+                    )
+                  }
+                  style={{
+                    padding:
+                      "13px 22px",
+                    border: "none",
+                    borderRadius:
+                      "10px",
+                    background:
+                      "#2563eb",
+                    color: "white",
+                    fontSize:
+                      "16px",
+                    fontWeight:
+                      "bold",
+                    cursor:
+                      "pointer",
+                  }}
+                >
+                  Next →
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    const unanswered =
+                      answers.filter(
+                        (
+                          answer
+                        ) =>
+                          answer ===
+                          ""
+                      ).length;
+
+                    if (
+                      unanswered >
+                      0
+                    ) {
+                      const confirmSubmit =
+                        window.confirm(
+                          `You still have ${unanswered} unanswered question(s). Do you want to submit the exam anyway?`
+                        );
+
+                      if (
+                        !confirmSubmit
+                      ) {
+                        return;
+                      }
+                    } else {
+                      const confirmSubmit =
+                        window.confirm(
+                          "Are you sure you want to submit your examination? You cannot take this examination again."
+                        );
+
+                      if (
+                        !confirmSubmit
+                      ) {
+                        return;
+                      }
+                    }
+
+                    submitExam();
+                  }}
+                  style={{
+                    padding:
+                      "13px 22px",
+                    border: "none",
+                    borderRadius:
+                      "10px",
+                    background:
+                      "#dc2626",
+                    color: "white",
+                    fontSize:
+                      "16px",
+                    fontWeight:
+                      "bold",
+                    cursor:
+                      "pointer",
+                  }}
+                >
+                  Submit Exam
+                </button>
+              )}
+            </div>
+
+            {/* QUESTION NAVIGATION */}
+
+            <div
+              style={{
+                marginTop: "35px",
+                paddingTop: "25px",
+                borderTop:
+                  "1px solid #e5e7eb",
+              }}
+            >
+              <p
+                style={{
+                  fontWeight:
+                    "bold",
+                  marginBottom:
+                    "15px",
+                }}
+              >
+                Question Navigation
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                }}
+              >
+                {questions.map(
+                  (_, index) => (
+                    <button
+                      key={index}
+                      onClick={() =>
+                        setCurrentQuestion(
+                          index
+                        )
+                      }
+                      style={{
+                        width:
+                          "42px",
+                        height:
+                          "42px",
+                        borderRadius:
+                          "8px",
+                        border:
+                          currentQuestion ===
+                          index
+                            ? "2px solid #111827"
+                            : "1px solid #d1d5db",
+                        background:
+                          answers[
+                            index
+                          ]
+                            ? "#dcfce7"
+                            : currentQuestion ===
+                              index
+                            ? "#dbeafe"
+                            : "white",
+                        color:
+                          "#111827",
+                        fontWeight:
+                          "bold",
+                        cursor:
+                          "pointer",
+                      }}
+                    >
+                      {index + 1}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* CAMERA MONITORING PANEL */}
+
+          <aside
+            style={{
+              display: "flex",
+              flexDirection:
+                "column",
+              gap: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "white",
+                borderRadius: "16px",
+                padding: "20px",
+                boxShadow:
+                  "0 5px 20px rgba(0,0,0,0.08)",
+              }}
+            >
+              <h3
+                style={{
+                  marginTop: 0,
+                }}
+              >
+                Camera Monitoring
+              </h3>
+
+              <div
+                style={{
+                  width: "100%",
+                  overflow:
+                    "hidden",
+                  borderRadius:
+                    "12px",
+                  background:
+                    "#111827",
+                  aspectRatio:
+                    "4 / 3",
+                  display:
+                    "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "center",
+                }}
+              >
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit:
+                      "cover",
+                  }}
+                />
+              </div>
+
+              <p
+                style={{
+                  fontSize: "14px",
+                  lineHeight:
+                    "1.5",
+                  color:
+                    cameraReady
+                      ? "#16a34a"
+                      : "#dc2626",
+                  marginBottom: 0,
+                }}
+              >
+                {cameraStatus}
+              </p>
+            </div>
+
+            {/* EXAM STATUS */}
+
+            <div
+              style={{
+                background: "white",
+                borderRadius: "16px",
+                padding: "20px",
+                boxShadow:
+                  "0 5px 20px rgba(0,0,0,0.08)",
+              }}
+            >
+              <h3
+                style={{
+                  marginTop: 0,
+                }}
+              >
+                Examination Status
+              </h3>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: "12px",
+                }}
+              >
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding: "10px",
+                    background:
+                      "#f9fafb",
+                    borderRadius:
+                      "8px",
+                  }}
+                >
+                  <span>
+                    Questions Answered
+                  </span>
+
+                  <strong>
+                    {
+                      answers.filter(
+                        (
+                          answer
+                        ) =>
+                          answer !==
+                          ""
+                      ).length
+                    }
+                    /
+                    {
+                      questions.length
+                    }
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding: "10px",
+                    background:
+                      "#f9fafb",
+                    borderRadius:
+                      "8px",
+                  }}
+                >
+                  <span>
+                    Camera
+                  </span>
+
+                  <strong
+                    style={{
+                      color:
+                        cameraReady
+                          ? "#16a34a"
+                          : "#dc2626",
+                    }}
+                  >
+                    {cameraReady
+                      ? "Active"
+                      : "Checking"}
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding: "10px",
+                    background:
+                      "#f9fafb",
+                    borderRadius:
+                      "8px",
+                  }}
+                >
+                  <span>
+                    People Detected
+                  </span>
+
+                  <strong>
+                    {personCount ===
+                    null
+                      ? "Checking"
+                      : personCount}
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding: "10px",
+                    background:
+                      "#f9fafb",
+                    borderRadius:
+                      "8px",
+                  }}
+                >
+                  <span>
+                    Looking Away Warnings
+                  </span>
+
+                  <strong>
+                    {
+                      lookingAwayCount
+                    }
+                    /5
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding: "10px",
+                    background:
+                      "#f9fafb",
+                    borderRadius:
+                      "8px",
+                  }}
+                >
+                  <span>
+                    Person Warnings
+                  </span>
+
+                  <strong>
+                    {
+                      personWarningCount
+                    }
+                    /5
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                    padding: "10px",
+                    background:
+                      "#f9fafb",
+                    borderRadius:
+                      "8px",
+                  }}
+                >
+                  <span>
+                    Tab Switches
+                  </span>
+
+                  <strong>
+                    {
+                      tabSwitchCount
+                    }
+                    /3
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            {/* SECURITY STATUS */}
+
+            <div
+              style={{
+                background: "#eff6ff",
+                border:
+                  "1px solid #bfdbfe",
+                borderRadius:
+                  "16px",
+                padding: "20px",
+              }}
+            >
+              <h3
+                style={{
+                  marginTop: 0,
+                  color: "#1d4ed8",
+                }}
+              >
+                Security Monitoring
+              </h3>
+
+              <p
+                style={{
+                  color: "#1e40af",
+                  lineHeight:
+                    "1.6",
+                  fontSize: "14px",
+                  marginBottom: 0,
+                }}
+              >
+                Your examination is being monitored
+                using camera detection and examination
+                security checks.
+              </p>
+            </div>
+          </aside>
+        </div>
+      </main>
+
+      {/* ===================================== */}
+      {/* WARNING MODAL - RENDERED OUTSIDE MAIN */}
+      {/* ===================================== */}
+
+      {typeof document !==
+        "undefined" &&
+        warningModal &&
+        createPortal(
+          warningModal,
+          document.body
+        )}
+    </>
   );
 }

@@ -19,112 +19,307 @@ import FaceAuthentication from "@/app/face-registration/FaceAuthentication";
 const questions = [
   {
     question:
-      "Which of the following is known as the study of human behavior and mental processes?",
-    options: ["Psychology", "Biology", "Chemistry", "Physics"],
-  },
-  {
-    question:
-      "Which part of the brain is mainly responsible for thinking?",
+      "The word “Psychology” is derived from which language?",
     options: [
-      "Cerebrum",
-      "Cerebellum",
-      "Medulla",
-      "Spinal cord",
+      "Latin",
+      "Greek",
+      "French",
     ],
   },
   {
     question:
-      "What is the process of acquiring new knowledge called?",
+      "Who is known as the “Father of Psychology”?",
     options: [
-      "Learning",
-      "Forgetting",
-      "Perception",
-      "Sensation",
+      "Wilhelm Wundt",
+      "Sigmund Freud",
+      "John B. Watson",
     ],
   },
   {
     question:
-      "Which type of memory holds information for a very short time?",
+      "Who defined Psychology as the “science of behavior”?",
     options: [
-      "Sensory memory",
+      "John B. Watson",
+      "Sigmund Freud",
+      "Edward Titchener",
+    ],
+  },
+  {
+    question:
+      "What was the main aim of Structuralism in Psychology?",
+    options: [
+      "To study how the mind functions and helps people adapt to their environment",
+      "To study the basic elements and structure of conscious experience",
+      "To study only observable behavior",
+    ],
+  },
+  {
+    question:
+      "What was the main focus of Functionalism in Psychology?",
+    options: [
+      "To understand how mental processes and behavior help individuals adapt to their environment",
+      "To analyze consciousness into its basic elements",
+      "To study behavior only through observable responses",
+    ],
+  },
+  {
+    question:
+      "What does Behaviorism primarily focus on in the study of Psychology?",
+    options: [
+      "Unconscious conflicts and hidden desires",
+      "The basic elements of conscious experience",
+      "Observable and measurable behavior",
+    ],
+  },
+  {
+    question:
+      "What is memory?",
+    options: [
+      "The ability to encode, store, and retrieve information",
+      "The ability to see objects clearly",
+      "The ability to control body temperature",
+    ],
+  },
+  {
+    question:
+      "A student studies a new phone number and remembers it for only a few seconds while entering it into the phone. This is mainly an example of:",
+    options: [
+      "Short-term memory",
       "Long-term memory",
-      "Permanent memory",
+      "Procedural memory",
+    ],
+  },
+  {
+    question:
+      "Which situation is the best example of short-term memory?",
+    options: [
+      "Remembering a phone number long enough to dial it",
+      "Remembering your childhood home for many years",
+      "Remembering how to ride a bicycle",
+    ],
+  },
+  {
+    question:
+      "What is the simplest definition of Psychology?",
+    options: [
+      "The scientific study of behavior and mental processes",
+      "The study of the human body only",
+      "The study of plants and animals only",
+    ],
+  },
+  {
+    question:
+      "A student who did not study for an exam says, “I failed because I was unlucky, not because I didn't study.” Which defense mechanism is this?",
+    options: [
+      "Rationalization",
+      "Regression",
+      "Repression",
+    ],
+  },
+  {
+    question:
+      "According to Sigmund Freud’s Iceberg Theory, which part of the mind contains thoughts and feelings that are outside our immediate awareness?",
+    options: [
+      "Conscious mind",
+      "Unconscious mind",
+      "Physical mind",
+    ],
+  },
+  {
+    question:
+      "After years of practice, a person can type on a keyboard without consciously thinking about the location of every key. This is mainly an example of:",
+    options: [
+      "Implicit/procedural memory",
+      "Episodic memory",
       "Semantic memory",
     ],
   },
   {
     question:
-      "What is the ability to focus on a particular stimulus called?",
+      "A person automatically remembers how to tie their shoelaces even after not doing it for several months. This demonstrates:",
     options: [
-      "Attention",
-      "Memory",
-      "Emotion",
-      "Motivation",
+      "Procedural memory",
+      "Semantic memory",
+      "Short-term memory",
     ],
   },
   {
     question:
-      "Which of the following is an example of an emotion?",
+      "A student fails an exam and says, “The teacher gave us an unfair question paper. I would have passed otherwise.” Which defense mechanism is this?",
+    options: [
+      "Rationalization",
+      "Repression",
+      "Sublimation",
+    ],
+  },
+  {
+    question:
+      "A student who feels jealous of a classmate says, “That person is actually jealous of me.” Which defense mechanism is this?",
+    options: [
+      "Projection",
+      "Regression",
+      "Denial",
+    ],
+  },
+  {
+    question:
+      "What does Structuralism in psychology mainly focus on?",
+    options: [
+      "The basic elements or structures of conscious experience",
+      "Observable behavior only",
+      "The unconscious mind only",
+    ],
+  },
+  {
+    question:
+      "Pavlov's famous experiment involved:",
+    options: [
+      "Dogs and salivation",
+      "Cats and puzzles",
+      "Monkeys and language",
+    ],
+  },
+  {
+    question:
+      "What is thinking?",
+    options: [
+      "The mental process of using information to form ideas, solve problems, and make decisions",
+      "The process of storing information only for a few seconds",
+      "The process of receiving information through the eyes only",
+    ],
+  },
+  {
+    question:
+      "A child learns to say “thank you” after repeatedly being praised for saying it. This is an example of:",
+    options: [
+      "Learning through reinforcement",
+      "False memory",
+      "Sensory perception",
+    ],
+  },
+  {
+    question:
+      "A person hears a rumor about an event and later remembers the rumor as if they personally witnessed the event. This is an example of:",
+    options: [
+      "False memory",
+      "Procedural learning",
+      "Sensory adaptation",
+    ],
+  },
+  {
+    question:
+      "A student performs poorly in academics but tries very hard to become excellent in sports to compensate for the feeling of failure. Which defense mechanism is this?",
+    options: [
+      "Compensation",
+      "Repression",
+      "Displacement",
+    ],
+  },
+  {
+    question:
+      "A student tries different methods to solve a difficult mathematics problem. This is an example of:",
+    options: [
+      "Problem-solving",
+      "Sensory memory",
+      "Perception only",
+    ],
+  },
+  {
+    question:
+      "An adult becomes dependent, cries easily, and behaves like a young child when under extreme stress. Which defense mechanism is this?",
+    options: [
+      "Regression",
+      "Rationalization",
+      "Sublimation",
+    ],
+  },
+  {
+    question:
+      "What does Functionalism mainly study?",
+    options: [
+      "The functions and purposes of mental processes and behavior",
+      "The structure of consciousness only",
+      "Dreams and unconscious conflicts only",
+    ],
+  },
+  {
+    question:
+      "A person who is angry with their boss goes home and shouts at a family member. Which defense mechanism is this?",
+    options: [
+      "Displacement",
+      "Projection",
+      "Regression",
+    ],
+  },
+  {
+    question:
+      "What is a false memory?",
+    options: [
+      "Remembering an event differently from how it actually happened, or remembering an event that did not happen",
+      "Forgetting a phone number after a few seconds",
+      "Learning a new physical skill",
+    ],
+  },
+  {
+    question:
+      "Rahul remembers his first day at college, including where he sat and whom he met. This is:",
+    options: [
+      "Episodic memory",
+      "Semantic memory",
+      "Procedural memory",
+    ],
+  },
+  {
+    question:
+      "Which of the following is an example of critical thinking?",
+    options: [
+      "Accepting every statement without questioning",
+      "Evaluating evidence before making a conclusion",
+      "Making decisions only based on emotions",
+    ],
+  },
+  {
+    question:
+      "Which of the following is a basic human emotion?",
     options: [
       "Happiness",
-      "Height",
-      "Weight",
-      "Temperature",
-    ],
-  },
-  {
-    question:
-      "The process of interpreting sensory information is called:",
-    options: [
-      "Perception",
-      "Storage",
-      "Forgetting",
-      "Rehearsal",
-    ],
-  },
-  {
-    question:
-      "What is problem solving mainly used for?",
-    options: [
-      "Finding solutions",
-      "Storing memories",
-      "Sleeping",
-      "Detecting sounds",
-    ],
-  },
-  {
-    question:
-      "Which of these is a type of long-term memory?",
-    options: [
-      "Declarative memory",
-      "Camera memory",
-      "Screen memory",
-      "Temporary memory",
-    ],
-  },
-  {
-    question:
-      "What is the ability to create new and useful ideas called?",
-    options: [
-      "Creativity",
-      "Perception",
-      "Sensation",
-      "Attention",
+      "Mathematics",
+      "Intelligence",
     ],
   },
 ];
 
 const correctAnswers = [
-  "Psychology",
-  "Cerebrum",
-  "Learning",
-  "Sensory memory",
-  "Attention",
+  "Greek",
+  "Wilhelm Wundt",
+  "John B. Watson",
+  "To study the basic elements and structure of conscious experience",
+  "To understand how mental processes and behavior help individuals adapt to their environment",
+  "Observable and measurable behavior",
+  "The ability to encode, store, and retrieve information",
+  "Short-term memory",
+  "Remembering a phone number long enough to dial it",
+  "The scientific study of behavior and mental processes",
+  "Rationalization",
+  "Unconscious mind",
+  "Implicit/procedural memory",
+  "Procedural memory",
+  "Rationalization",
+  "Projection",
+  "The basic elements or structures of conscious experience",
+  "Dogs and salivation",
+  "The mental process of using information to form ideas, solve problems, and make decisions",
+  "Learning through reinforcement",
+  "False memory",
+  "Compensation",
+  "Problem-solving",
+  "Regression",
+  "The functions and purposes of mental processes and behavior",
+  "Displacement",
+  "Remembering an event differently from how it actually happened, or remembering an event that did not happen",
+  "Episodic memory",
+  "Evaluating evidence before making a conclusion",
   "Happiness",
-  "Perception",
-  "Finding solutions",
-  "Declarative memory",
-  "Creativity",
 ];
 
 export default function ExamPage() {
@@ -144,7 +339,7 @@ export default function ExamPage() {
     setInstructionsAccepted,
   ] = useState(false);
 
-  const EXAM_DURATION = 10 * 60;
+  const EXAM_DURATION = 60 * 60;
 
   const [timeLeft, setTimeLeft] =
     useState(EXAM_DURATION);

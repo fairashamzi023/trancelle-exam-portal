@@ -2,29 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import * as faceapi from "@vladmandic/face-api";
 import { supabase } from "@/lib/supabase";
 
 export default function FaceRegistrationPage() {
   const router = useRouter();
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const faceApiRef = useRef<any>(null);
 
   const [status, setStatus] = useState(
-    "Loading face recognition models..."
+    "Loading face recognition system..."
   );
 
-  const [modelsLoaded, setModelsLoaded] =
-    useState(false);
-
-  const [cameraReady, setCameraReady] =
-    useState(false);
-
-  const [saving, setSaving] =
-    useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // =====================================
-  // LOAD FACE API MODELS
+  // LOAD FACE API ONLY IN BROWSER
   // =====================================
 
   useEffect(() => {
@@ -32,9 +27,16 @@ export default function FaceRegistrationPage() {
 
     async function loadModels() {
       try {
-        setStatus(
-          "Loading face recognition models..."
-        );
+        setStatus("Loading face recognition models...");
+
+        // IMPORTANT:
+        // Dynamic import prevents the Vercel TextEncoder
+        // error during server-side prerendering.
+        const faceapi = await import("@vladmandic/face-api");
+
+        if (cancelled) return;
+
+        faceApiRef.current = faceapi;
 
         await faceapi.nets.tinyFaceDetector.loadFromUri(
           "/models/face-api"
@@ -50,16 +52,12 @@ export default function FaceRegistrationPage() {
 
         if (!cancelled) {
           setModelsLoaded(true);
-
           setStatus(
             "Face recognition system ready. Starting camera..."
           );
         }
       } catch (error) {
-        console.error(
-          "Face model loading error:",
-          error
-        );
+        console.error("Face model loading error:", error);
 
         if (!cancelled) {
           setStatus(
@@ -81,17 +79,13 @@ export default function FaceRegistrationPage() {
   // =====================================
 
   useEffect(() => {
-    if (!modelsLoaded) {
-      return;
-    }
+    if (!modelsLoaded) return;
 
     let stream: MediaStream | null = null;
 
     async function startCamera() {
       try {
-        setStatus(
-          "Requesting camera access..."
-        );
+        setStatus("Requesting camera access...");
 
         stream =
           await navigator.mediaDevices.getUserMedia({
@@ -108,8 +102,7 @@ export default function FaceRegistrationPage() {
           });
 
         if (videoRef.current) {
-          videoRef.current.srcObject =
-            stream;
+          videoRef.current.srcObject = stream;
 
           await videoRef.current.play();
 
@@ -120,10 +113,7 @@ export default function FaceRegistrationPage() {
           );
         }
       } catch (error) {
-        console.error(
-          "Camera error:",
-          error
-        );
+        console.error("Camera error:", error);
 
         setStatus(
           "❌ Unable to access camera. Please allow camera permission."
@@ -135,11 +125,9 @@ export default function FaceRegistrationPage() {
 
     return () => {
       if (stream) {
-        stream
-          .getTracks()
-          .forEach((track) =>
-            track.stop()
-          );
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
       }
     };
   }, [modelsLoaded]);
@@ -152,6 +140,7 @@ export default function FaceRegistrationPage() {
     if (
       !videoRef.current ||
       !cameraReady ||
+      !modelsLoaded ||
       saving
     ) {
       return;
@@ -160,15 +149,29 @@ export default function FaceRegistrationPage() {
     try {
       setSaving(true);
 
-      setStatus(
-        "Scanning your face..."
-      );
+      setStatus("Scanning your face...");
+
+      const faceapi = faceApiRef.current;
+
+      if (!faceapi) {
+        setStatus(
+          "❌ Face recognition system is not ready."
+        );
+        return;
+      }
+
+      // =====================================
+      // DETECT FACE
+      // =====================================
 
       const detection =
         await faceapi
           .detectSingleFace(
             videoRef.current,
-            new faceapi.TinyFaceDetectorOptions()
+            new faceapi.TinyFaceDetectorOptions({
+              inputSize: 416,
+              scoreThreshold: 0.5,
+            })
           )
           .withFaceLandmarks()
           .withFaceDescriptor();
@@ -181,33 +184,24 @@ export default function FaceRegistrationPage() {
         return;
       }
 
-      // Convert Float32Array into a normal array
-      // so Supabase can store it as JSONB.
-      const faceDescriptor =
-        Array.from(
-          detection.descriptor
-        );
+      // =====================================
+      // CONVERT FACE DESCRIPTOR
+      // =====================================
 
-      setStatus(
-        "Saving your face registration..."
+      const faceDescriptor = Array.from(
+        detection.descriptor
       );
 
       // =====================================
-      // GET LOGGED-IN STUDENT
+      // GET LOGGED-IN USER
       // =====================================
 
       const {
-        data: {
-          user,
-        },
+        data: { user },
         error: userError,
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
 
-      if (
-        userError ||
-        !user
-      ) {
+      if (userError || !user) {
         setStatus(
           "❌ Your login session was not found."
         );
@@ -216,41 +210,246 @@ export default function FaceRegistrationPage() {
       }
 
       // =====================================
-      // SAVE FACE DESCRIPTOR
+      // GET STUDENT RECORD
       // =====================================
 
       const {
-        error: updateError,
-      } =
-        await supabase
-          .from("students")
-          .update({
-            face_descriptor:
-              faceDescriptor,
-          })
-          .eq(
-            "user_id",
-            user.id
-          );
+        data: student,
+        error: studentError,
+      } = await supabase
+        .from("students")
+        .select("id, user_id")
+        .eq("user_id", user.id)
+        .single();
 
-      if (updateError) {
+      if (studentError || !student) {
         console.error(
-          "Face save error:",
-          updateError
+          "Student lookup error:",
+          studentError
         );
 
         setStatus(
-          `❌ Unable to save your face: ${updateError.message}`
+          "❌ Student account could not be found."
         );
 
         return;
       }
 
+      // =====================================
+      // CAPTURE FACE IMAGE
+      // =====================================
+
+      setStatus("Capturing your face image...");
+
+      const video = videoRef.current;
+
+      if (
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+      ) {
+        setStatus(
+          "❌ Camera image is not ready. Please try again."
+        );
+
+        return;
+      }
+
+      const canvas =
+        document.createElement("canvas");
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        setStatus(
+          "❌ Unable to capture camera image."
+        );
+
+        return;
+      }
+
+      // Mirror the image so it looks like the
+      // student's camera preview.
+      context.translate(
+        canvas.width,
+        0
+      );
+      context.scale(-1, 1);
+
+      context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      const imageBlob =
+        await new Promise<Blob | null>(
+          (resolve) => {
+            canvas.toBlob(
+              (blob) =>
+                resolve(blob),
+              "image/jpeg",
+              0.9
+            );
+          }
+        );
+
+      if (!imageBlob) {
+        setStatus(
+          "❌ Unable to create face image."
+        );
+
+        return;
+      }
+
+      // =====================================
+      // UPLOAD FACE IMAGE TO SUPABASE STORAGE
+      // =====================================
+
+      setStatus(
+        "Uploading your face image..."
+      );
+
+      const filePath =
+        `${user.id}/face-${Date.now()}.jpg`;
+
+      const {
+        error: uploadError,
+      } = await supabase.storage
+        .from("student-faces")
+        .upload(
+          filePath,
+          imageBlob,
+          {
+            contentType:
+              "image/jpeg",
+            upsert: false,
+          }
+        );
+
+      if (uploadError) {
+        console.error(
+          "Face image upload error:",
+          uploadError
+        );
+
+        setStatus(
+          `❌ Face image upload failed: ${uploadError.message}`
+        );
+
+        return;
+      }
+
+      // =====================================
+      // GET PUBLIC IMAGE URL
+      // =====================================
+
+      const {
+        data: publicUrlData,
+      } = supabase.storage
+        .from("student-faces")
+        .getPublicUrl(filePath);
+
+      const faceImageUrl =
+        publicUrlData.publicUrl;
+
+      // =====================================
+      // SAVE DESCRIPTOR IN STUDENTS TABLE
+      // =====================================
+
+      setStatus(
+        "Saving face registration..."
+      );
+
+      const {
+        error: studentUpdateError,
+      } = await supabase
+        .from("students")
+        .update({
+          face_descriptor:
+            faceDescriptor,
+        })
+        .eq(
+          "user_id",
+          user.id
+        );
+
+      if (studentUpdateError) {
+        console.error(
+          "Student face descriptor error:",
+          studentUpdateError
+        );
+
+        setStatus(
+          `❌ Unable to save face descriptor: ${studentUpdateError.message}`
+        );
+
+        return;
+      }
+
+      // =====================================
+      // REMOVE OLD FACE REGISTRATION
+      // =====================================
+
+      const {
+        error: deleteError,
+      } = await supabase
+        .from("student_faces")
+        .delete()
+        .eq(
+          "student_id",
+          student.id
+        );
+
+      if (deleteError) {
+        console.error(
+          "Old face deletion error:",
+          deleteError
+        );
+      }
+
+      // =====================================
+      // SAVE FACE IN STUDENT_FACES
+      // =====================================
+
+      const {
+        error: faceInsertError,
+      } = await supabase
+        .from("student_faces")
+        .insert({
+          student_id:
+            student.id,
+          face_embedding:
+            faceDescriptor,
+          face_image_url:
+            faceImageUrl,
+        });
+
+      if (faceInsertError) {
+        console.error(
+          "Student face insert error:",
+          faceInsertError
+        );
+
+        setStatus(
+          `❌ Unable to save face registration: ${faceInsertError.message}`
+        );
+
+        return;
+      }
+
+      // =====================================
+      // SUCCESS
+      // =====================================
+
       setStatus(
         "✓ Face registered successfully!"
       );
 
-      // Give the student a moment to see success
       setTimeout(() => {
         router.push(
           "/student/camera"
@@ -343,6 +542,8 @@ export default function FaceRegistrationPage() {
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              transform:
+                "scaleX(-1)",
             }}
           />
         </div>
@@ -363,9 +564,7 @@ export default function FaceRegistrationPage() {
         </div>
 
         <button
-          onClick={
-            registerFace
-          }
+          onClick={registerFace}
           disabled={
             !cameraReady ||
             !modelsLoaded ||

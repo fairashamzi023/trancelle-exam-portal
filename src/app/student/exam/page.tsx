@@ -1074,13 +1074,12 @@ export default function ExamPage() {
                     );
 
                   const persons =
-                    predictions.filter(
-                      (
-                        prediction
-                      ) =>
-                        prediction.class ===
-                        "person"
-                    );
+  predictions.filter(
+    (prediction) =>
+      prediction.class ===
+        "person" &&
+      prediction.score >= 0.2
+  );
 
                   const detectedCount =
                     persons.length;

@@ -14,12 +14,17 @@ import {
 } from "@mediapipe/tasks-vision";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import FaceAuthentication from "@/app/face-registration/FaceAuthentication";
 
 const questions = [
   {
     question:
       "The word “Psychology” is derived from which language?",
-    options: ["Latin", "Greek", "French"],
+    options: [
+      "Latin",
+      "Greek",
+      "French",
+    ],
   },
   {
     question:
@@ -67,7 +72,8 @@ const questions = [
     ],
   },
   {
-    question: "What is memory?",
+    question:
+      "What is memory?",
     options: [
       "The ability to encode, store, and retrieve information",
       "The ability to see objects clearly",
@@ -174,7 +180,8 @@ const questions = [
     ],
   },
   {
-    question: "What is thinking?",
+    question:
+      "What is thinking?",
     options: [
       "The mental process of using information to form ideas, solve problems, and make decisions",
       "The process of storing information only for a few seconds",
@@ -245,7 +252,8 @@ const questions = [
     ],
   },
   {
-    question: "What is a false memory?",
+    question:
+      "What is a false memory?",
     options: [
       "Remembering an event differently from how it actually happened, or remembering an event that did not happen",
       "Forgetting a phone number after a few seconds",
@@ -314,19 +322,6 @@ const correctAnswers = [
   "Happiness",
 ];
 
-// =====================================
-// EXAM AVAILABILITY
-// =====================================
-
-const EXAM_START_TIME = "2026-09-07T13:00:00+05:30";
-const EXAM_END_TIME = "2026-09-07T15:00:00+05:30";
-
-// =====================================
-// EXAM DURATION
-// =====================================
-
-const EXAM_DURATION = 60 * 60;
-
 export default function ExamPage() {
   const router = useRouter();
 
@@ -343,6 +338,8 @@ export default function ExamPage() {
     instructionsAccepted,
     setInstructionsAccepted,
   ] = useState(false);
+
+  const EXAM_DURATION = 60 * 60;
 
   const [timeLeft, setTimeLeft] =
     useState(EXAM_DURATION);
@@ -361,6 +358,9 @@ export default function ExamPage() {
     );
 
   const [cameraReady, setCameraReady] =
+    useState(false);
+
+  const [faceAuthenticated, setFaceAuthenticated] =
     useState(false);
 
   const [personCount, setPersonCount] =
@@ -424,25 +424,6 @@ export default function ExamPage() {
     useRef(false);
 
   // =====================================
-  // CHECK IST EXAM WINDOW
-  // =====================================
-
-  const isExamTimeAvailable = () => {
-    const now = new Date();
-
-    const start =
-      new Date(EXAM_START_TIME);
-
-    const end =
-      new Date(EXAM_END_TIME);
-
-    return (
-      now >= start &&
-      now < end
-    );
-  };
-
-  // =====================================
   // FETCH SAVED EXAM RESULT
   // =====================================
 
@@ -492,6 +473,7 @@ export default function ExamPage() {
           "Result fetch error:",
           error
         );
+
         return;
       }
 
@@ -540,7 +522,7 @@ export default function ExamPage() {
   };
 
   // =====================================
-  // LOGIN + ONE-TIME EXAM CHECK
+  // SUPABASE LOGIN + ONE-TIME EXAM CHECK
   // =====================================
 
   useEffect(() => {
@@ -673,7 +655,8 @@ export default function ExamPage() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        resultSavedRef.current = false;
+        resultSavedRef.current =
+          false;
 
         alert(
           "Student session not found."
@@ -755,7 +738,8 @@ export default function ExamPage() {
           error
         );
 
-        resultSavedRef.current = false;
+        resultSavedRef.current =
+          false;
 
         alert(
           "Exam ended, but the result could not be saved: " +
@@ -771,6 +755,7 @@ export default function ExamPage() {
         .from("students")
         .update({
           exam_completed: true,
+
           exam_ended_at:
             new Date().toISOString(),
         })
@@ -790,6 +775,10 @@ export default function ExamPage() {
         "examAnswers"
       );
 
+      console.log(
+        "Exam result saved successfully."
+      );
+
       await fetchExamResult();
     } catch (error) {
       console.error(
@@ -797,7 +786,8 @@ export default function ExamPage() {
         error
       );
 
-      resultSavedRef.current = false;
+      resultSavedRef.current =
+        false;
 
       alert(
         "Exam ended, but something went wrong while saving the result."
@@ -851,7 +841,8 @@ export default function ExamPage() {
             `You left the examination tab. This is violation ${newCount} of 3.`
           );
 
-          showWarningRef.current = true;
+          showWarningRef.current =
+            true;
 
           setShowWarning(true);
         }
@@ -874,7 +865,7 @@ export default function ExamPage() {
   ]);
 
   // =====================================
-  // TIMER + 3 PM HARD STOP
+  // TIMER
   // =====================================
 
   useEffect(() => {
@@ -885,37 +876,13 @@ export default function ExamPage() {
       return;
     }
 
+    if (timeLeft <= 0) {
+      submitExam();
+      return;
+    }
+
     const timer =
       setInterval(() => {
-        const now =
-          new Date();
-
-        const examEnd =
-          new Date(
-            EXAM_END_TIME
-          );
-
-        // Hard stop at 3:00 PM IST
-        if (
-          now >= examEnd
-        ) {
-          clearInterval(timer);
-
-          setTimeLeft(0);
-
-          setWarningTitle(
-            "🚫 EXAM ENDED"
-          );
-
-          setWarningMessage(
-            "The examination period ended at 3:00 PM. Your examination has been automatically submitted."
-          );
-
-          submitExam();
-
-          return;
-        }
-
         setTimeLeft(
           (
             previousTime
@@ -923,7 +890,9 @@ export default function ExamPage() {
             if (
               previousTime <= 1
             ) {
-              clearInterval(timer);
+              clearInterval(
+                timer
+              );
 
               setTimeLeft(0);
 
@@ -940,11 +909,14 @@ export default function ExamPage() {
       }, 1000);
 
     return () => {
-      clearInterval(timer);
+      clearInterval(
+        timer
+      );
     };
   }, [
     examStarted,
     examEnded,
+    timeLeft,
   ]);
 
   // =====================================
@@ -1029,7 +1001,9 @@ export default function ExamPage() {
 
             await videoRef.current.play();
 
-            setCameraReady(true);
+            setCameraReady(
+              true
+            );
 
             setCameraStatus(
               "Camera monitoring is active."
@@ -1092,7 +1066,6 @@ export default function ExamPage() {
                 try {
                   // =====================
                   // PERSON DETECTION
-                  // CONFIDENCE = 40%
                   // =====================
 
                   const predictions =
@@ -1101,13 +1074,12 @@ export default function ExamPage() {
                     );
 
                   const persons =
-                    predictions.filter(
-                      (prediction) =>
-                        prediction.class ===
-                          "person" &&
-                        prediction.score >=
-                          0.4
-                    );
+  predictions.filter(
+    (prediction) =>
+      prediction.class ===
+        "person" &&
+      prediction.score >= 0.2
+  );
 
                   const detectedCount =
                     persons.length;
@@ -1116,7 +1088,6 @@ export default function ExamPage() {
                     detectedCount
                   );
 
-                  // No person detected
                   if (
                     detectedCount === 0
                   ) {
@@ -1157,12 +1128,13 @@ export default function ExamPage() {
                     showWarningRef.current =
                       true;
 
-                    setShowWarning(true);
+                    setShowWarning(
+                      true
+                    );
 
                     return;
                   }
 
-                  // More than one person
                   if (
                     detectedCount > 1
                   ) {
@@ -1203,7 +1175,9 @@ export default function ExamPage() {
                     showWarningRef.current =
                       true;
 
-                    setShowWarning(true);
+                    setShowWarning(
+                      true
+                    );
 
                     return;
                   }
@@ -1301,7 +1275,9 @@ export default function ExamPage() {
                     showWarningRef.current =
                       true;
 
-                    setShowWarning(true);
+                    setShowWarning(
+                      true
+                    );
                   }
                 } catch (
                   detectionError
@@ -1343,7 +1319,9 @@ export default function ExamPage() {
         stream
           .getTracks()
           .forEach(
-            (track) =>
+            (
+              track
+            ) =>
               track.stop()
           );
       }
@@ -1354,8 +1332,8 @@ export default function ExamPage() {
   ]);
 
   // =====================================
-  // START EXAM
-  // DATABASE LEVEL + TIME CHECK
+  // START ONE-TIME EXAM
+  // DATABASE-LEVEL ATOMIC LOCK
   // =====================================
 
   const startExam = async () => {
@@ -1367,21 +1345,9 @@ export default function ExamPage() {
     }
 
     try {
-      setStartingExam(true);
-
-      // =====================================
-      // LOCAL TIME CHECK
-      // =====================================
-
-      if (
-        !isExamTimeAvailable()
-      ) {
-        alert(
-          "The examination is available only today, September 7, 2026, from 1:00 PM to 3:00 PM IST."
-        );
-
-        return;
-      }
+      setStartingExam(
+        true
+      );
 
       const {
         data: { user },
@@ -1400,7 +1366,7 @@ export default function ExamPage() {
       }
 
       // =====================================
-      // CHECK CURRENT EXAM STATUS
+      // FIRST CHECK CURRENT EXAM STATUS
       // =====================================
 
       const {
@@ -1439,7 +1405,9 @@ export default function ExamPage() {
         student.exam_completed ===
           true
       ) {
-        setExamAlreadyUsed(true);
+        setExamAlreadyUsed(
+          true
+        );
 
         alert(
           "You have already used your examination attempt. You cannot take this exam again."
@@ -1450,7 +1418,6 @@ export default function ExamPage() {
 
       // =====================================
       // DATABASE ATOMIC LOCK
-      // ALSO CHECKS SERVER TIME
       // =====================================
 
       const {
@@ -1466,34 +1433,6 @@ export default function ExamPage() {
           startError
         );
 
-        // BEFORE 1 PM OR AFTER 3 PM
-        if (
-          startError.message?.includes(
-            "EXAM_NOT_AVAILABLE"
-          )
-        ) {
-          alert(
-            "The examination is available only today, September 7, 2026, from 1:00 PM to 3:00 PM IST."
-          );
-
-          return;
-        }
-
-        // ALREADY USED
-        if (
-          startError.message?.includes(
-            "EXAM_ALREADY_USED"
-          )
-        ) {
-          setExamAlreadyUsed(true);
-
-          alert(
-            "You have already used your examination attempt. You cannot take this exam again."
-          );
-
-          return;
-        }
-
         alert(
           "Unable to start the examination."
         );
@@ -1502,22 +1441,18 @@ export default function ExamPage() {
       }
 
       // =====================================
-      // DATABASE RETURNS JSON
-      // { success: true, started_at: ... }
+      // DATABASE SAYS EXAM WAS ALREADY USED
       // =====================================
 
       if (
-        !examStartedResult ||
-        examStartedResult.success !==
-          true
+        examStartedResult !== true
       ) {
-        console.error(
-          "Unexpected exam start response:",
-          examStartedResult
+        setExamAlreadyUsed(
+          true
         );
 
         alert(
-          "Unable to start the examination."
+          "You have already used your examination attempt. You cannot take this exam again."
         );
 
         return;
@@ -1548,7 +1483,9 @@ export default function ExamPage() {
       // START EXAM UI
       // =====================================
 
-      setExamStarted(true);
+      setExamStarted(
+        true
+      );
 
     } catch (
       error
@@ -1561,8 +1498,11 @@ export default function ExamPage() {
       alert(
         "Something went wrong while starting the examination."
       );
+
     } finally {
-      setStartingExam(false);
+      setStartingExam(
+        false
+      );
     }
   };
 
@@ -1626,7 +1566,9 @@ export default function ExamPage() {
   const selectAnswer = (
     answer: string
   ) => {
-    if (examEnded) {
+    if (
+      examEnded
+    ) {
       return;
     }
 
@@ -1664,7 +1606,9 @@ export default function ExamPage() {
       showWarningRef.current =
         false;
 
-      setShowWarning(false);
+      setShowWarning(
+        false
+      );
     };
 
   // =====================================
@@ -1825,9 +1769,6 @@ export default function ExamPage() {
   if (
     !examStarted
   ) {
-    const examAvailable =
-      isExamTimeAvailable();
-
     return (
       <main
         style={{
@@ -1891,65 +1832,6 @@ export default function ExamPage() {
             Examination Instructions
           </h1>
 
-          {/* EXAM TIME WINDOW */}
-
-          <div
-            style={{
-              margin:
-                "20px 0 25px",
-              padding:
-                "18px",
-              background:
-                examAvailable
-                  ? "#f0fdf4"
-                  : "#fff7ed",
-              border:
-                examAvailable
-                  ? "1px solid #bbf7d0"
-                  : "1px solid #fed7aa",
-              borderRadius:
-                "12px",
-              textAlign:
-                "center",
-            }}
-          >
-            <strong
-              style={{
-                color:
-                  examAvailable
-                    ? "#15803d"
-                    : "#c2410c",
-                fontSize:
-                  "17px",
-              }}
-            >
-              {examAvailable
-                ? "Examination is currently available"
-                : "Examination is currently unavailable"}
-            </strong>
-
-            <p
-              style={{
-                margin:
-                  "8px 0 0",
-                color:
-                  "#374151",
-                lineHeight:
-                  "1.5",
-              }}
-            >
-              Exam Date:{" "}
-              <strong>
-                September 7, 2026
-              </strong>
-              <br />
-              Available Time:{" "}
-              <strong>
-                1:00 PM – 3:00 PM IST
-              </strong>
-            </p>
-          </div>
-
           <p
             style={{
               textAlign:
@@ -2002,17 +1884,6 @@ export default function ExamPage() {
               </li>
 
               <li>
-                The examination can only be started
-                between 1:00 PM and 3:00 PM IST on
-                September 7, 2026.
-              </li>
-
-              <li>
-                The examination period ends
-                automatically at 3:00 PM.
-              </li>
-
-              <li>
                 You must remain visible to the
                 camera throughout the examination.
               </li>
@@ -2039,7 +1910,8 @@ export default function ExamPage() {
 
               <li>
                 Leaving fullscreen mode may
-                automatically end your examination.
+                automatically end your
+                examination.
               </li>
 
               <li>
@@ -2061,9 +1933,7 @@ export default function ExamPage() {
               marginTop:
                 "25px",
               cursor:
-                examAvailable
-                  ? "pointer"
-                  : "not-allowed",
+                "pointer",
               color:
                 "#374151",
               lineHeight:
@@ -2074,9 +1944,6 @@ export default function ExamPage() {
               type="checkbox"
               checked={
                 instructionsAccepted
-              }
-              disabled={
-                !examAvailable
               }
               onChange={(
                 event
@@ -2105,8 +1972,7 @@ export default function ExamPage() {
           <button
             disabled={
               !instructionsAccepted ||
-              startingExam ||
-              !examAvailable
+              startingExam
             }
             onClick={
               startExam
@@ -2124,8 +1990,7 @@ export default function ExamPage() {
                 "10px",
               background:
                 instructionsAccepted &&
-                !startingExam &&
-                examAvailable
+                !startingExam
                   ? "#2563eb"
                   : "#9ca3af",
               color:
@@ -2136,16 +2001,13 @@ export default function ExamPage() {
                 "bold",
               cursor:
                 instructionsAccepted &&
-                !startingExam &&
-                examAvailable
+                !startingExam
                   ? "pointer"
                   : "not-allowed",
             }}
           >
             {startingExam
               ? "Starting Examination..."
-              : !examAvailable
-              ? "Examination Not Available"
               : "Start Examination →"}
           </button>
         </section>
@@ -2548,10 +2410,19 @@ export default function ExamPage() {
               2147483647,
             isolation:
               "isolate",
+            pointerEvents:
+              "auto",
+          }}
+          onClick={(
+            event
+          ) => {
+            event.stopPropagation();
           }}
         >
           <div
             style={{
+              position:
+                "relative",
               width:
                 "100%",
               maxWidth:
@@ -2568,6 +2439,13 @@ export default function ExamPage() {
                 "border-box",
               boxShadow:
                 "0 20px 60px rgba(0,0,0,0.5)",
+              zIndex:
+                2147483647,
+            }}
+            onClick={(
+              event
+            ) => {
+              event.stopPropagation();
             }}
           >
             <div
@@ -2927,7 +2805,8 @@ export default function ExamPage() {
                     ) =>
                       Math.max(
                         0,
-                        previous - 1
+                        previous -
+                          1
                       )
                   )
                 }
@@ -3065,6 +2944,8 @@ export default function ExamPage() {
                 </button>
               )}
             </div>
+
+            {/* QUESTION NAVIGATION */}
 
             <div
               style={{
@@ -3502,7 +3383,9 @@ export default function ExamPage() {
         </div>
       </main>
 
+      {/* ===================================== */}
       {/* WARNING MODAL PORTAL */}
+      {/* ===================================== */}
 
       {typeof document !==
         "undefined" &&

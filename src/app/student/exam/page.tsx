@@ -14,17 +14,12 @@ import {
 } from "@mediapipe/tasks-vision";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import FaceAuthentication from "@/app/face-registration/FaceAuthentication";
 
 const questions = [
   {
     question:
       "The word “Psychology” is derived from which language?",
-    options: [
-      "Latin",
-      "Greek",
-      "French",
-    ],
+    options: ["Latin", "Greek", "French"],
   },
   {
     question:
@@ -72,8 +67,7 @@ const questions = [
     ],
   },
   {
-    question:
-      "What is memory?",
+    question: "What is memory?",
     options: [
       "The ability to encode, store, and retrieve information",
       "The ability to see objects clearly",
@@ -180,8 +174,7 @@ const questions = [
     ],
   },
   {
-    question:
-      "What is thinking?",
+    question: "What is thinking?",
     options: [
       "The mental process of using information to form ideas, solve problems, and make decisions",
       "The process of storing information only for a few seconds",
@@ -252,8 +245,7 @@ const questions = [
     ],
   },
   {
-    question:
-      "What is a false memory?",
+    question: "What is a false memory?",
     options: [
       "Remembering an event differently from how it actually happened, or remembering an event that did not happen",
       "Forgetting a phone number after a few seconds",
@@ -339,6 +331,10 @@ export default function ExamPage() {
     setInstructionsAccepted,
   ] = useState(false);
 
+  // =====================================
+  // EXAM DURATION
+  // =====================================
+
   const EXAM_DURATION = 60 * 60;
 
   const [timeLeft, setTimeLeft] =
@@ -358,9 +354,6 @@ export default function ExamPage() {
     );
 
   const [cameraReady, setCameraReady] =
-    useState(false);
-
-  const [faceAuthenticated, setFaceAuthenticated] =
     useState(false);
 
   const [personCount, setPersonCount] =
@@ -1073,13 +1066,15 @@ export default function ExamPage() {
                       video
                     );
 
+                  // 40% CONFIDENCE THRESHOLD
                   const persons =
-  predictions.filter(
-    (prediction) =>
-      prediction.class ===
-        "person" &&
-      prediction.score >= 0.2
-  );
+                    predictions.filter(
+                      (prediction) =>
+                        prediction.class ===
+                          "person" &&
+                        prediction.score >=
+                          0.4
+                    );
 
                   const detectedCount =
                     persons.length;
@@ -1333,7 +1328,7 @@ export default function ExamPage() {
 
   // =====================================
   // START ONE-TIME EXAM
-  // DATABASE-LEVEL ATOMIC LOCK
+  // NO TIME RESTRICTION
   // =====================================
 
   const startExam = async () => {
@@ -1366,7 +1361,7 @@ export default function ExamPage() {
       }
 
       // =====================================
-      // FIRST CHECK CURRENT EXAM STATUS
+      // CHECK CURRENT EXAM STATUS
       // =====================================
 
       const {
@@ -1417,20 +1412,41 @@ export default function ExamPage() {
       }
 
       // =====================================
-      // DATABASE ATOMIC LOCK
+      // ATOMIC ONE-TIME EXAM LOCK
+      // NO TIME CHECK
       // =====================================
 
       const {
-        data: examStartedResult,
-        error: startError,
-      } = await supabase.rpc(
-        "start_exam"
-      );
+        data: lockedStudent,
+        error: lockError,
+      } = await supabase
+        .from("students")
+        .update({
+          exam_started: true,
+          exam_started_at:
+            new Date().toISOString(),
+        })
+        .eq(
+          "user_id",
+          user.id
+        )
+        .eq(
+          "exam_started",
+          false
+        )
+        .eq(
+          "exam_completed",
+          false
+        )
+        .select(
+          "user_id"
+        )
+        .maybeSingle();
 
-      if (startError) {
+      if (lockError) {
         console.error(
-          "Exam start error:",
-          startError
+          "Exam lock error:",
+          lockError
         );
 
         alert(
@@ -1440,13 +1456,9 @@ export default function ExamPage() {
         return;
       }
 
-      // =====================================
-      // DATABASE SAYS EXAM WAS ALREADY USED
-      // =====================================
-
-      if (
-        examStartedResult !== true
-      ) {
+      // If no row was updated,
+      // another attempt has already started.
+      if (!lockedStudent) {
         setExamAlreadyUsed(
           true
         );
@@ -1486,7 +1498,6 @@ export default function ExamPage() {
       setExamStarted(
         true
       );
-
     } catch (
       error
     ) {
@@ -1498,7 +1509,6 @@ export default function ExamPage() {
       alert(
         "Something went wrong while starting the examination."
       );
-
     } finally {
       setStartingExam(
         false
@@ -3383,9 +3393,7 @@ export default function ExamPage() {
         </div>
       </main>
 
-      {/* ===================================== */}
       {/* WARNING MODAL PORTAL */}
-      {/* ===================================== */}
 
       {typeof document !==
         "undefined" &&
